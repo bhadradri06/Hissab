@@ -12,6 +12,10 @@
   }
 }
 
+.font-brand {
+  font-family: "Poppins", "Noto Sans Devanagari", "Noto Sans Telugu", system-ui, sans-serif;
+}
+
 .font-num {
   font-family: "JetBrains Mono", "Plus Jakarta Sans", monospace;
   font-variant-numeric: tabular-nums;

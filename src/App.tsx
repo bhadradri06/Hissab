@@ -494,10 +494,10 @@ export default function App() {
             onClick={() => navigateTab('home')}
             className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg"
           >
-            <span className="block text-base md:text-xl font-bold leading-tight tracking-tight text-slate-900 whitespace-nowrap">
+            <span className="block font-brand text-base md:text-xl font-bold leading-tight tracking-tight text-emerald-700 whitespace-nowrap">
               {t.appName}
             </span>
-            <span className="block text-[10px] sm:text-xs font-medium leading-tight text-slate-500 truncate">
+            <span className="block font-brand text-[10px] sm:text-xs font-semibold leading-tight text-slate-500 truncate">
               {t.tagline}
             </span>
           </button>
