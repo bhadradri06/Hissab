@@ -1,7 +1,7 @@
 import { Search, UserPlus, Users } from 'lucide-react';
 import type { CustomerSummary, DashboardMetrics } from '../types';
 import type { TranslationDict } from '../i18n/translations';
-import { formatINR } from '../utils/ledger';
+import { formatIndianDate, formatINR, getTodayISO } from '../utils/ledger';
 import { CustomerCard } from './CustomerCard';
 
 export type CustomerFilter = 'all' | 'outstanding' | 'settled' | 'overdue';
@@ -40,8 +40,17 @@ export function DashboardView({
     { key: 'overdue', label: t.filterOverdue },
   ];
 
+  const todayFormatted = formatIndianDate(getTodayISO());
+
   return (
     <div className="space-y-5">
+      <div className="flex items-baseline justify-between gap-2">
+        <h1 className="text-lg sm:text-xl font-bold text-slate-900">{t.dashboard}</h1>
+        <span className="text-xs sm:text-sm font-medium text-slate-500 font-num whitespace-nowrap">
+          {t.todayLabel}: {todayFormatted}
+        </span>
+      </div>
+
       {/* 4 Summary KPI Cards: 2x2 on mobile, 4 cols on lg */}
       <section aria-label={t.dashboard} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-4">

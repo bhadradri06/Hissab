@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CheckCircle2, Clock, MessageCircle } from 'lucide-react';
 import type { CustomerSummary } from '../types';
 import type { TranslationDict } from '../i18n/translations';
-import { formatIndianDate, formatINR } from '../utils/ledger';
+import { formatIndianDate, formatINR, getTodayISO } from '../utils/ledger';
 
 type OverdueDaysFilter = 0 | 7 | 15 | 30 | 60;
 
@@ -44,9 +44,14 @@ export function OverdueView({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-lg sm:text-xl font-bold text-slate-900">{t.overdueTitle}</h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{t.overdueSubtitle}</p>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900">{t.overdueTitle}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{t.overdueSubtitle}</p>
+        </div>
+        <span className="text-xs sm:text-sm font-medium text-slate-500 font-num whitespace-nowrap">
+          {t.todayLabel}: {formatIndianDate(getTodayISO())}
+        </span>
       </div>
 
       {/* Days Filter Bar */}

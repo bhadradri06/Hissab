@@ -1,6 +1,21 @@
 import type { Customer, CustomerSummary, DashboardMetrics, LedgerEntry } from '../types';
 
-export function getTodayISO(): string {
+export function getTodayISO(searchOverride?: string): string {
+  const search =
+    searchOverride !== undefined
+      ? searchOverride
+      : typeof window !== 'undefined'
+        ? window.location.search
+        : '';
+
+  if (search) {
+    const params = new URLSearchParams(search);
+    const todayParam = params.get('today')?.trim();
+    if (todayParam && isValidISODate(todayParam)) {
+      return todayParam;
+    }
+  }
+
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');

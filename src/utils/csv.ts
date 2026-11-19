@@ -1,5 +1,5 @@
 import type { CustomerSummary, LedgerEntry } from '../types';
-import { formatIndianDate, roundCurrency, sortEntriesNewestFirst } from './ledger';
+import { formatIndianDate, getTodayISO, roundCurrency, sortEntriesNewestFirst } from './ledger';
 
 function escapeCsvCell(value: string | number): string {
   const str = String(value ?? '');
@@ -85,7 +85,7 @@ export function exportAllCustomersCsv(
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayISO();
   downloadCsv(`hisaab-all-customers-${today}.csv`, rows);
 }
 
@@ -145,6 +145,6 @@ export function exportOutstandingCustomersCsv(summaries: CustomerSummary[]): voi
     ]);
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayISO();
   downloadCsv(`hisaab-outstanding-${today}.csv`, rows);
 }

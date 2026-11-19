@@ -11,6 +11,7 @@ import {
 import type { AppSettings, Customer, CustomerSummary, LanguageCode, LedgerEntry } from '../types';
 import type { TranslationDict } from '../i18n/translations';
 import { exportAllCustomersCsv, exportOutstandingCustomersCsv } from '../utils/csv';
+import { getTodayISO } from '../utils/ledger';
 import {
   buildExportBackupJson,
   validateAndParseImportJson,
@@ -78,7 +79,7 @@ export function SettingsView({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `hisaab-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `hisaab-backup-${getTodayISO()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

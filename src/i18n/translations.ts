@@ -10,6 +10,7 @@ export interface TranslationDict {
   navSettings: string;
   // Dashboard KPIs
   dashboard: string;
+  todayLabel: string;
   totalOutstanding: string;
   totalCustomers: string;
   todaysCollections: string;
@@ -152,6 +153,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     navOverdue: 'Overdue',
     navSettings: 'Settings',
     dashboard: 'Dashboard',
+    todayLabel: 'Today',
     totalOutstanding: 'Total Outstanding',
     totalCustomers: 'Total Customers',
     todaysCollections: "Today's Collections",
@@ -282,6 +284,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     navOverdue: 'बकाया',
     navSettings: 'सेटिंग्स',
     dashboard: 'डैशबोर्ड',
+    todayLabel: 'आज',
     totalOutstanding: 'कुल बकाया',
     totalCustomers: 'कुल ग्राहक',
     todaysCollections: 'आज की वसूली',
@@ -412,6 +415,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     navOverdue: 'బాకీలు',
     navSettings: 'సెట్టింగ్స్',
     dashboard: 'డాష్బోర్డ్',
+    todayLabel: 'నేడు',
     totalOutstanding: 'మొత్తం బాకీ',
     totalCustomers: 'మొత్తం కస్టమర్లు',
     todaysCollections: 'నేటి వసూలు',
