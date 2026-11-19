@@ -147,7 +147,7 @@ export interface TranslationDict {
 export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
   en: {
     appName: 'Hisaab',
-    tagline: 'Simple Hisaab. Clear Balances. Easy Reminders.',
+    tagline: 'Every Rupee Accounted. Every Hisaab Sorted.',
     navHome: 'Home',
     navCustomers: 'Customers',
     navOverdue: 'Overdue',
@@ -278,7 +278,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
   },
   hi: {
     appName: 'हिसाब',
-    tagline: 'आसान हिसाब। साफ बकाया। सरल रिमाइंडर।',
+    tagline: 'हर रुपया दर्ज। हर हिसाब व्यवस्थित।',
     navHome: 'होम',
     navCustomers: 'ग्राहक',
     navOverdue: 'बकाया',
@@ -409,7 +409,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
   },
   te: {
     appName: 'హిసాబ్',
-    tagline: 'సులభమైన హిసాబ్. స్పష్టమైన బాకీలు. సులువైన రిమైండర్లు.',
+    tagline: 'ప్రతి రూపాయి లెక్కలో. ప్రతి హిసాబ్ స్పష్టంగా.',
     navHome: 'హోమ్',
     navCustomers: 'కస్టమర్లు',
     navOverdue: 'బాకీలు',

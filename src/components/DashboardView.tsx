@@ -44,8 +44,11 @@ export function DashboardView({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-baseline justify-between gap-2">
-        <h1 className="text-lg sm:text-xl font-bold text-slate-900">{t.dashboard}</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900">{t.dashboard}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{t.tagline}</p>
+        </div>
         <span className="text-xs sm:text-sm font-medium text-slate-500 font-num whitespace-nowrap">
           {t.todayLabel}: {todayFormatted}
         </span>
