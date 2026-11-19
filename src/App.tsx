@@ -487,14 +487,19 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Top Bar: Compact 44px on mobile, clean 3-zone contract on desktop */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-11 md:h-16 flex items-center justify-between gap-4 md:gap-8">
-          {/* Zone 1: Brand Wordmark */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 min-h-[50px] md:h-16 py-1.5 md:py-0 flex items-center justify-between gap-3 md:gap-8">
+          {/* Zone 1: Brand Wordmark + Caption */}
           <button
             type="button"
             onClick={() => navigateTab('home')}
-            className="text-lg md:text-xl font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg"
+            className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg"
           >
-            {t.appName}
+            <span className="block text-base md:text-xl font-bold leading-tight tracking-tight text-slate-900 whitespace-nowrap">
+              {t.appName}
+            </span>
+            <span className="block text-[10px] sm:text-xs font-medium leading-tight text-slate-500 truncate">
+              {t.tagline}
+            </span>
           </button>
 
           {/* Zone 2: Desktop Navigation Links */}
