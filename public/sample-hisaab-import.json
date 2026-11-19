@@ -1,0 +1,67 @@
+{
+  "app": "Hisaab",
+  "shopName": "Balaji General Store",
+  "exportedAt": "2026-11-18T10:30:00.000Z",
+  "customers": [
+    {
+      "name": "Venkatesh Rao",
+      "phone": "9440112233",
+      "address": "14 Gandhi Bazaar, Kurnool",
+      "notes": "Monthly rice & oil account",
+      "entries": [
+        {
+          "type": "credit",
+          "amount": 3200,
+          "date": "2026-10-12",
+          "note": "Sona Masoori 25kg + Sunflower oil 5L"
+        },
+        {
+          "type": "payment",
+          "amount": 1500,
+          "date": "2026-10-25",
+          "note": "Cash paid at counter"
+        },
+        {
+          "type": "credit",
+          "amount": 850,
+          "date": "2026-11-08",
+          "note": "Dal, atta, and spices"
+        }
+      ]
+    },
+    {
+      "name": "Priya Nair",
+      "phone": "9811223344",
+      "address": "Flat 2B, Shanti Residency",
+      "notes": "Pays via GPay",
+      "entries": [
+        {
+          "type": "credit",
+          "amount": 1800,
+          "date": "2026-11-10",
+          "note": "Weekly groceries"
+        },
+        {
+          "type": "payment",
+          "amount": 1800,
+          "date": "2026-11-15",
+          "note": "GPay settled"
+        }
+      ]
+    },
+    {
+      "name": "Harishankar Patel",
+      "phone": "9825556677",
+      "address": "Near Railway Gate",
+      "notes": "Tea stall supplies",
+      "entries": [
+        {
+          "type": "credit",
+          "amount": 4200,
+          "date": "2026-09-15",
+          "note": "Sugar 50kg & tea dust"
+        }
+      ]
+    }
+  ]
+}

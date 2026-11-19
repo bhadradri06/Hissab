@@ -1,0 +1,6 @@
+{
+  "name": "Hisaab",
+  "description": "Simple Hisaab. Clear Balances. Easy Reminders. Mobile-first digital khata and ledger for Indian kirana shops.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
