@@ -9,7 +9,7 @@ import type {
   LanguageCode,
   LedgerEntry,
 } from './types';
-import { createSampleDataset, DEFAULT_SETTINGS, storageService } from './db/storage';
+import { DEFAULT_SETTINGS, storageService } from './db/storage';
 import { TRANSLATIONS } from './i18n/translations';
 import {
   computeAllSummaries,
@@ -99,7 +99,7 @@ function mergeImportIntoState(
   return { nextCustomers, nextEntries };
 }
 
-const ATTACHED_SAMPLE_FLAG = 'hisaab_imported_sample_633eb33f_v1';
+const ATTACHED_SAMPLE_FLAG = 'hisaab_expected_dataset_v2';
 const ATTACHED_SAMPLE_URL = '/assets/aistudio/sample-data_633eb33f.json';
 
 export default function App() {
@@ -157,14 +157,18 @@ export default function App() {
         let finalEntries = loaded.entries;
         let finalSettings = loaded.settings;
 
-        let alreadyImportedAttached = false;
+        let alreadySynced = false;
         try {
-          alreadyImportedAttached = localStorage.getItem(ATTACHED_SAMPLE_FLAG) === '1';
+          alreadySynced = localStorage.getItem(ATTACHED_SAMPLE_FLAG) === '1';
         } catch {
-          alreadyImportedAttached = false;
+          alreadySynced = false;
         }
 
-        if (!alreadyImportedAttached) {
+        if (!alreadySynced) {
+          // Remove legacy built-in placeholder records if present so expected dataset totals match cleanly
+          finalCustomers = finalCustomers.filter((c) => !c.id.startsWith('cust_sample_'));
+          finalEntries = finalEntries.filter((e) => !e.id.startsWith('ent_sample_'));
+
           try {
             const resp = await fetch(ATTACHED_SAMPLE_URL);
             if (resp.ok) {
@@ -175,7 +179,11 @@ export default function App() {
                 finalCustomers = merged.nextCustomers;
                 finalEntries = merged.nextEntries;
                 await storageService.replaceAllData(finalCustomers, finalEntries);
-                if (parsed.shopName && finalSettings.shopName === DEFAULT_SETTINGS.shopName) {
+                if (
+                  parsed.shopName &&
+                  (finalSettings.shopName === 'Sri Sai Kirana Store' ||
+                    finalSettings.shopName === DEFAULT_SETTINGS.shopName)
+                ) {
                   finalSettings = { ...finalSettings, shopName: parsed.shopName };
                   await storageService.saveSettings(finalSettings);
                 }
@@ -415,18 +423,24 @@ export default function App() {
   };
 
   const handleLoadSampleData = async () => {
-    const sample = createSampleDataset();
-    // Merge sample records safely without overwriting user's added customers
-    const existingPhones = new Set(customers.map((c) => c.phone));
-    const addedCustomers = sample.customers.filter((c) => !existingPhones.has(c.phone));
-    const addedIds = new Set(addedCustomers.map((c) => c.id));
-    const addedEntries = sample.entries.filter((e) => addedIds.has(e.customerId));
-
-    const nextCustomers = [...customers, ...addedCustomers];
-    const nextEntries = [...entries, ...addedEntries];
-    await storageService.replaceAllData(nextCustomers, nextEntries);
-    setCustomers(nextCustomers);
-    setEntries(nextEntries);
+    try {
+      const resp = await fetch(ATTACHED_SAMPLE_URL);
+      if (!resp.ok) return;
+      const rawText = await resp.text();
+      const parsed = validateAndParseImportJson(rawText, customers);
+      if (!parsed.valid) return;
+      const { nextCustomers, nextEntries } = mergeImportIntoState(
+        customers,
+        entries,
+        parsed,
+        false
+      );
+      await storageService.replaceAllData(nextCustomers, nextEntries);
+      setCustomers(nextCustomers);
+      setEntries(nextEntries);
+    } catch {
+      setStorageWarning('Could not load sample dataset.');
+    }
   };
 
   const handleRequestClearAll = () => {

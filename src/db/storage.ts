@@ -1,5 +1,4 @@
 import type { AppSettings, Customer, LedgerEntry } from '../types';
-import { getTodayISO } from '../utils/ledger';
 
 const DB_NAME = 'hisaab_ledger_db';
 const DB_VERSION = 1;
@@ -13,145 +12,10 @@ const FALLBACK_DATA_LS_KEY = 'hisaab_fallback_data_v1';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
-  shopName: 'Sri Sai Kirana Store',
+  shopName: 'Lakshmi Provision Store (fictional)',
   upiId: '',
   overdueThresholdDays: 7,
 };
-
-function shiftDaysISO(daysAgo: number): string {
-  const dt = new Date();
-  dt.setDate(dt.getDate() - daysAgo);
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth() + 1).padStart(2, '0');
-  const d = String(dt.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-export function createSampleDataset(): {
-  customers: Customer[];
-  entries: LedgerEntry[];
-} {
-  const now = new Date().toISOString();
-  const today = getTodayISO();
-
-  const customers: Customer[] = [
-    {
-      id: 'cust_sample_1',
-      name: 'Mahesh Sharma',
-      phone: '9820112233',
-      address: 'Shop 4, Main Market Road',
-      notes: 'Monthly grocery & ration',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'cust_sample_2',
-      name: 'Lakshmi Devi',
-      phone: '9849011223',
-      address: 'H.No 12-4, Gandhi Nagar',
-      notes: 'Pays on 1st of month',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'cust_sample_3',
-      name: 'Abdul Rahman',
-      phone: '9701234567',
-      address: 'Near Bus Stand',
-      notes: 'Bakery supplies',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'cust_sample_4',
-      name: 'Anita Verma',
-      phone: '9988776655',
-      address: 'Sector 2, Lane 3',
-      notes: 'Regular cash + UPI customer',
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
-
-  const entries: LedgerEntry[] = [
-    // Mahesh Sharma: Credit 4500 (45 days ago), Payment 1000 (35 days ago) -> ₹3,500 overdue (35 days)
-    {
-      id: 'ent_sample_1',
-      customerId: 'cust_sample_1',
-      type: 'credit',
-      amount: 4500,
-      date: shiftDaysISO(45),
-      note: '25kg Rice, 5L Oil, Dal & Atta',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'ent_sample_2',
-      customerId: 'cust_sample_1',
-      type: 'payment',
-      amount: 1000,
-      date: shiftDaysISO(35),
-      note: 'Part payment cash',
-      createdAt: now,
-      updatedAt: now,
-    },
-    // Lakshmi Devi: Credit 2200 (22 days ago), no payments yet -> ₹2,200 overdue (22 days)
-    {
-      id: 'ent_sample_3',
-      customerId: 'cust_sample_2',
-      type: 'credit',
-      amount: 2200,
-      date: shiftDaysISO(22),
-      note: 'Monthly kitchen groceries',
-      createdAt: now,
-      updatedAt: now,
-    },
-    // Abdul Rahman: Credit 1800 (5 days ago), Payment 1800 (today) -> ₹0 settled, Today's Collection ₹1,800
-    {
-      id: 'ent_sample_4',
-      customerId: 'cust_sample_3',
-      type: 'credit',
-      amount: 1800,
-      date: shiftDaysISO(5),
-      note: 'Sugar 20kg & Maida',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'ent_sample_5',
-      customerId: 'cust_sample_3',
-      type: 'payment',
-      amount: 1800,
-      date: today,
-      note: 'UPI settled in full',
-      createdAt: now,
-      updatedAt: now,
-    },
-    // Anita Verma: Credit 900 (10 days ago), Payment 1200 (2 days ago) -> -₹300 Advance balance
-    {
-      id: 'ent_sample_6',
-      customerId: 'cust_sample_4',
-      type: 'credit',
-      amount: 900,
-      date: shiftDaysISO(10),
-      note: 'Milk, biscuits & snacks',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'ent_sample_7',
-      customerId: 'cust_sample_4',
-      type: 'payment',
-      amount: 1200,
-      date: shiftDaysISO(2),
-      note: 'Paid ₹1,200 (₹300 advance kept)',
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
-
-  return { customers, entries };
-}
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -307,13 +171,7 @@ class StorageService {
     const db = await this.getDb();
 
     if (!db) {
-      let data = this.readFallback();
-      const alreadySeeded = localStorage.getItem(SEEDED_LS_KEY) === '1';
-      if (!alreadySeeded && data.customers.length === 0) {
-        data = createSampleDataset();
-        this.writeFallback(data.customers, data.entries);
-        localStorage.setItem(SEEDED_LS_KEY, '1');
-      }
+      const data = this.readFallback();
       return {
         customers: data.customers,
         entries: data.entries,
@@ -323,7 +181,7 @@ class StorageService {
     }
 
     try {
-      let [customers, entries] = await Promise.all([
+      const [customers, entries] = await Promise.all([
         idbGetAll<Customer>(db, STORE_CUSTOMERS),
         idbGetAll<LedgerEntry>(db, STORE_ENTRIES),
       ]);
@@ -336,25 +194,6 @@ class StorageService {
       const mergedSettings = storedSettings
         ? { ...DEFAULT_SETTINGS, ...storedSettings }
         : settings;
-
-      let alreadySeeded = false;
-      try {
-        alreadySeeded = localStorage.getItem(SEEDED_LS_KEY) === '1';
-      } catch {
-        alreadySeeded = customers.length > 0;
-      }
-
-      if (!alreadySeeded && customers.length === 0) {
-        const sample = createSampleDataset();
-        await idbReplaceAll(db, sample.customers, sample.entries);
-        customers = sample.customers;
-        entries = sample.entries;
-        try {
-          localStorage.setItem(SEEDED_LS_KEY, '1');
-        } catch {
-          // ignore
-        }
-      }
 
       return {
         customers,
