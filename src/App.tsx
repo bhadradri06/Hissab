@@ -497,7 +497,7 @@ export default function App() {
             <span className="block font-brand text-base md:text-xl font-bold leading-tight tracking-tight text-emerald-700 whitespace-nowrap">
               {t.appName}
             </span>
-            <span className="block font-brand text-[10px] sm:text-xs font-semibold leading-tight text-slate-500 truncate">
+            <span className="block font-brand text-[10px] sm:text-xs font-normal leading-tight text-slate-500 truncate">
               {t.tagline}
             </span>
           </button>
