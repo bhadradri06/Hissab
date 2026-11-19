@@ -124,6 +124,7 @@ export interface TranslationDict {
   exportBackupJson: string;
   importSectionTitle: string;
   importJsonButton: string;
+  importAttachedSample: string;
   downloadSampleJson: string;
   importPreviewTitle: string;
   importCustomersFound: string;
@@ -255,6 +256,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     exportBackupJson: 'Download Full JSON Backup',
     importSectionTitle: 'Import Another Shop Data (JSON)',
     importJsonButton: 'Select JSON File to Import',
+    importAttachedSample: 'Import Attached Sample (Lakshmi Store)',
     downloadSampleJson: 'Download Sample JSON',
     importPreviewTitle: 'Import Preview',
     importCustomersFound: 'Customers in file',
@@ -384,6 +386,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     exportBackupJson: 'पूरा JSON बैकअप डाउनलोड',
     importSectionTitle: 'दूसरी दुकान का डेटा जोड़ें (JSON)',
     importJsonButton: 'इम्पोर्ट के लिए JSON फ़ाइल चुनें',
+    importAttachedSample: 'अटैच्ड सैंपल इम्पोर्ट करें (लक्ष्मी स्टोर)',
     downloadSampleJson: 'सैंपल JSON डाउनलोड करें',
     importPreviewTitle: 'इम्पोर्ट प्रीव्यू',
     importCustomersFound: 'फ़ाइल में ग्राहक',
@@ -513,6 +516,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     exportBackupJson: 'పూర్తి JSON బ్యాకప్ డౌన్లోడ్',
     importSectionTitle: 'మరో షాప్ డేటా దిగుమతి (JSON)',
     importJsonButton: 'దిగుమతి కోసం JSON ఫైల్ ఎంచుకోండి',
+    importAttachedSample: 'అటాచ్ చేసిన నమూనా దిగుమతి (లక్ష్మీ స్టోర్)',
     downloadSampleJson: 'నమూనా JSON డౌన్లోడ్',
     importPreviewTitle: 'దిగుమతి ప్రివ్యూ',
     importCustomersFound: 'ఫైల్లో ఉన్న కస్టమర్లు',

@@ -115,6 +115,27 @@ export function SettingsView({
     setImportSuccessMsg(t.importSuccess);
   };
 
+  const handleLoadAttachedSample = async () => {
+    setImportSuccessMsg(null);
+    try {
+      const res = await fetch('/assets/aistudio/sample-data_633eb33f.json');
+      if (!res.ok) throw new Error('Failed to fetch sample file');
+      const text = await res.text();
+      const parsed = validateAndParseImportJson(text, customers);
+      setImportPreview(parsed);
+      setMergeDuplicates(false);
+    } catch {
+      setImportPreview({
+        valid: false,
+        customers: [],
+        totalValidEntries: 0,
+        duplicateCount: 0,
+        errors: ['Unable to load attached sample JSON file.'],
+        warnings: [],
+      });
+    }
+  };
+
   const languages: Array<{ code: LanguageCode; label: string }> = [
     { code: 'en', label: 'English' },
     { code: 'hi', label: 'हिन्दी (Hindi)' },
@@ -255,6 +276,15 @@ export function SettingsView({
               <FileUp className="w-4 h-4" />
               <span>{t.importJsonButton}</span>
             </label>
+
+            <button
+              type="button"
+              onClick={handleLoadAttachedSample}
+              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-sm font-semibold text-blue-800 inline-flex items-center gap-2 transition-colors"
+            >
+              <FileUp className="w-4 h-4" />
+              <span>{t.importAttachedSample}</span>
+            </button>
 
             <a
               href="/sample-hisaab-import.json"

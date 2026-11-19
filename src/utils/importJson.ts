@@ -22,6 +22,7 @@ export interface ParsedImportCustomer {
 
 export interface ImportValidationResult {
   valid: boolean;
+  shopName?: string;
   customers: ParsedImportCustomer[];
   totalValidEntries: number;
   duplicateCount: number;
@@ -196,8 +197,16 @@ export function validateAndParseImportJson(
     errors.push('No valid customers found in the JSON file.');
   }
 
+  const rawShop =
+    typeof root.shopName === 'string'
+      ? root.shopName.trim()
+      : typeof root.shop === 'string'
+        ? root.shop.trim()
+        : undefined;
+
   return {
     valid: errors.length === 0 && customers.length > 0,
+    shopName: rawShop || undefined,
     customers,
     totalValidEntries,
     duplicateCount,

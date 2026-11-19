@@ -17,7 +17,10 @@ import {
   sortEntriesNewestFirst,
 } from './utils/ledger';
 import { exportAllCustomersCsv, exportCustomerLedgerCsv } from './utils/csv';
-import type { ImportValidationResult } from './utils/importJson';
+import {
+  validateAndParseImportJson,
+  type ImportValidationResult,
+} from './utils/importJson';
 import { DashboardView, type CustomerFilter } from './components/DashboardView';
 import { CustomerListView } from './components/CustomerListView';
 import { CustomerDetailView } from './components/CustomerDetailView';
@@ -35,6 +38,69 @@ function makeId(prefix: string): string {
   }
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
+
+function mergeImportIntoState(
+  baseCustomers: Customer[],
+  baseEntries: LedgerEntry[],
+  result: ImportValidationResult,
+  mergeDuplicates: boolean
+): { nextCustomers: Customer[]; nextEntries: LedgerEntry[] } {
+  const now = new Date().toISOString();
+  const nextCustomers = [...baseCustomers];
+  const nextEntries = [...baseEntries];
+
+  for (const impCust of result.customers) {
+    let targetCustomerId: string;
+
+    if (impCust.isDuplicateInApp && impCust.existingCustomerId) {
+      if (!mergeDuplicates) {
+        continue;
+      }
+      targetCustomerId = impCust.existingCustomerId;
+    } else {
+      targetCustomerId = makeId('cust');
+      nextCustomers.push({
+        id: targetCustomerId,
+        name: impCust.name,
+        phone: impCust.phone,
+        address: impCust.address,
+        notes: impCust.notes,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    for (const impEntry of impCust.entries) {
+      const alreadyExists =
+        impCust.isDuplicateInApp &&
+        nextEntries.some(
+          (e) =>
+            e.customerId === targetCustomerId &&
+            e.type === impEntry.type &&
+            e.amount === impEntry.amount &&
+            e.date === impEntry.date &&
+            e.note === impEntry.note
+        );
+      if (alreadyExists) continue;
+
+      nextEntries.push({
+        id: makeId('ent'),
+        customerId: targetCustomerId,
+        type: impEntry.type,
+        amount: impEntry.amount,
+        date: impEntry.date,
+        note: impEntry.note,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
+
+  return { nextCustomers, nextEntries };
+}
+
+const ATTACHED_SAMPLE_FLAG = 'hisaab_imported_sample_633eb33f_v1';
+const ATTACHED_SAMPLE_URL = '/assets/aistudio/sample-data_633eb33f.json';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -81,21 +147,64 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true;
-    storageService
-      .loadState()
-      .then((loaded) => {
+
+    async function init() {
+      try {
+        const loaded = await storageService.loadState();
         if (!mounted) return;
-        setCustomers(loaded.customers);
-        setEntries(loaded.entries);
-        setSettings(loaded.settings);
+
+        let finalCustomers = loaded.customers;
+        let finalEntries = loaded.entries;
+        let finalSettings = loaded.settings;
+
+        let alreadyImportedAttached = false;
+        try {
+          alreadyImportedAttached = localStorage.getItem(ATTACHED_SAMPLE_FLAG) === '1';
+        } catch {
+          alreadyImportedAttached = false;
+        }
+
+        if (!alreadyImportedAttached) {
+          try {
+            const resp = await fetch(ATTACHED_SAMPLE_URL);
+            if (resp.ok) {
+              const rawText = await resp.text();
+              const parsed = validateAndParseImportJson(rawText, finalCustomers);
+              if (parsed.valid) {
+                const merged = mergeImportIntoState(finalCustomers, finalEntries, parsed, false);
+                finalCustomers = merged.nextCustomers;
+                finalEntries = merged.nextEntries;
+                await storageService.replaceAllData(finalCustomers, finalEntries);
+                if (parsed.shopName && finalSettings.shopName === DEFAULT_SETTINGS.shopName) {
+                  finalSettings = { ...finalSettings, shopName: parsed.shopName };
+                  await storageService.saveSettings(finalSettings);
+                }
+                try {
+                  localStorage.setItem(ATTACHED_SAMPLE_FLAG, '1');
+                } catch {
+                  // ignore
+                }
+              }
+            }
+          } catch {
+            // Non-fatal if attachment fetch fails offline
+          }
+        }
+
+        if (!mounted) return;
+        setCustomers(finalCustomers);
+        setEntries(finalEntries);
+        setSettings(finalSettings);
         setStorageWarning(loaded.storageWarning);
         setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         if (!mounted) return;
         setStorageWarning('Storage error occurred. Data may not persist.');
         setLoading(false);
-      });
+      }
+    }
+
+    void init();
     return () => {
       mounted = false;
     };
@@ -293,57 +402,12 @@ export default function App() {
     result: ImportValidationResult,
     mergeDuplicates: boolean
   ) => {
-    const now = new Date().toISOString();
-    const nextCustomers = [...customers];
-    const nextEntries = [...entries];
-
-    for (const impCust of result.customers) {
-      let targetCustomerId: string;
-
-      if (impCust.isDuplicateInApp && impCust.existingCustomerId) {
-        if (!mergeDuplicates) {
-          continue; // Safely skip duplicate without overwriting existing data
-        }
-        targetCustomerId = impCust.existingCustomerId;
-      } else {
-        targetCustomerId = makeId('cust');
-        nextCustomers.push({
-          id: targetCustomerId,
-          name: impCust.name,
-          phone: impCust.phone,
-          address: impCust.address,
-          notes: impCust.notes,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-
-      for (const impEntry of impCust.entries) {
-        // Avoid exact duplicate entry on merge
-        const alreadyExists =
-          impCust.isDuplicateInApp &&
-          nextEntries.some(
-            (e) =>
-              e.customerId === targetCustomerId &&
-              e.type === impEntry.type &&
-              e.amount === impEntry.amount &&
-              e.date === impEntry.date &&
-              e.note === impEntry.note
-          );
-        if (alreadyExists) continue;
-
-        nextEntries.push({
-          id: makeId('ent'),
-          customerId: targetCustomerId,
-          type: impEntry.type,
-          amount: impEntry.amount,
-          date: impEntry.date,
-          note: impEntry.note,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-    }
+    const { nextCustomers, nextEntries } = mergeImportIntoState(
+      customers,
+      entries,
+      result,
+      mergeDuplicates
+    );
 
     await storageService.replaceAllData(nextCustomers, nextEntries);
     setCustomers(nextCustomers);
