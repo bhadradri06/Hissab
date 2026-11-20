@@ -485,14 +485,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      {/* Top Bar: Compact 44px on mobile, clean 3-zone contract on desktop */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200">
+      {/* Top Bar: Curved mobile shell + clean 3-zone contract on desktop */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 rounded-b-2xl md:rounded-none shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 min-h-[50px] md:h-16 py-1.5 md:py-0 flex items-center justify-between gap-3 md:gap-8">
           {/* Zone 1: Brand Wordmark + Caption */}
           <button
             type="button"
             onClick={() => navigateTab('home')}
-            className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg"
+            className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 rounded-lg"
           >
             <span className="block font-brand text-base md:text-xl font-bold leading-tight tracking-tight text-emerald-700 whitespace-nowrap">
               {t.appName}
@@ -513,7 +513,7 @@ export default function App() {
                   onClick={() => navigateTab(item.key)}
                   className={`py-1 whitespace-nowrap shrink-0 border-b-2 transition-colors ${
                     isActive
-                      ? 'border-blue-700 text-blue-700 font-semibold'
+                      ? 'border-emerald-700 text-emerald-700 font-semibold'
                       : 'border-transparent text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -549,7 +549,7 @@ export default function App() {
                 setEditingCustomer(null);
                 setCustomerModalOpen(true);
               }}
-              className="hidden md:inline-flex items-center gap-1.5 min-h-[40px] px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-xs font-semibold text-white whitespace-nowrap shrink-0 transition-colors"
+              className="hidden md:inline-flex items-center gap-1.5 min-h-[40px] px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-xs font-semibold text-white whitespace-nowrap shrink-0 transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>{t.addCustomer}</span>
@@ -602,6 +602,7 @@ export default function App() {
           />
         ) : activeTab === 'home' ? (
           <DashboardView
+            shopName={settings.shopName}
             metrics={dashboardMetrics}
             summaries={filteredSummaries}
             searchQuery={searchQuery}
@@ -616,6 +617,7 @@ export default function App() {
             onSelectCustomer={(id) => setSelectedCustomerId(id)}
             onSendReminder={handleOpenWhatsApp}
             onOpenOverdueTab={() => navigateTab('overdue')}
+            onExportAllCsv={() => exportAllCustomersCsv(allSummaries, entries)}
           />
         ) : activeTab === 'customers' ? (
           <CustomerListView
@@ -663,7 +665,7 @@ export default function App() {
             setEditingCustomer(null);
             setCustomerModalOpen(true);
           }}
-          className="md:hidden fixed bottom-18 right-4 z-30 w-13 h-13 rounded-2xl bg-blue-700 hover:bg-blue-800 active:scale-95 text-white shadow-lg shadow-blue-900/25 flex items-center justify-center transition-transform"
+          className="md:hidden fixed bottom-18 right-4 z-30 w-12 h-12 rounded-2xl bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white shadow-lg shadow-emerald-900/25 flex items-center justify-center transition-transform"
           aria-label={t.addCustomer}
           title={t.addCustomer}
         >
@@ -671,9 +673,9 @@ export default function App() {
         </button>
       )}
 
-      {/* Mobile Bottom Tab Navigation (56px height) */}
+      {/* Mobile Bottom Tab Navigation with elevated active circular indicator */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 pb-safe"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] pb-safe"
         aria-label="Mobile navigation"
       >
         <div className="grid grid-cols-4 h-14 items-center">
@@ -686,18 +688,32 @@ export default function App() {
                 type="button"
                 onClick={() => navigateTab(item.key)}
                 className={`relative min-h-[44px] flex flex-col items-center justify-center px-1 transition-colors ${
-                  isActive ? 'text-blue-700' : 'text-slate-500 hover:text-slate-800'
+                  isActive ? 'text-emerald-700' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                <div className="relative">
-                  <Icon className="w-5 h-5" />
+                <div
+                  className={`relative flex items-center justify-center transition-transform ${
+                    isActive
+                      ? 'w-9 h-9 -mt-3 rounded-full bg-emerald-700 text-white shadow-md ring-4 ring-white'
+                      : ''
+                  }`}
+                >
+                  <Icon className={isActive ? 'w-4 h-4' : 'w-5 h-5'} />
                   {item.badge !== undefined && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-bold font-num flex items-center justify-center">
+                    <span
+                      className={`absolute min-w-[16px] h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-bold font-num flex items-center justify-center ${
+                        isActive ? '-top-1 -right-1.5' : '-top-1.5 -right-2.5'
+                      }`}
+                    >
                       {item.badge}
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] font-semibold mt-0.5 truncate max-w-full">
+                <span
+                  className={`text-[10px] mt-0.5 truncate max-w-full ${
+                    isActive ? 'font-bold text-emerald-700' : 'font-semibold'
+                  }`}
+                >
                   {item.label}
                 </span>
               </button>

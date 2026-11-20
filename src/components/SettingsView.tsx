@@ -161,7 +161,7 @@ export function SettingsView({
                   onClick={() => handleLanguageSelect(lang.code)}
                   className={`min-h-[46px] px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
                     active
-                      ? 'bg-blue-700 border-blue-700 text-white'
+                      ? 'bg-emerald-700 border-emerald-700 text-white'
                       : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
@@ -209,7 +209,7 @@ export function SettingsView({
             <div className="flex items-center gap-3 pt-1">
               <button
                 type="submit"
-                className="min-h-[44px] px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-sm font-semibold text-white transition-colors"
+                className="min-h-[44px] px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-sm font-semibold text-white transition-colors"
               >
                 {t.saveSettings}
               </button>

@@ -201,7 +201,7 @@ export function CustomerModal({
             <button
               type="submit"
               disabled={submitting}
-              className="min-h-[46px] px-5 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-sm font-semibold text-white transition-colors"
+              className="min-h-[46px] px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-sm font-semibold text-white transition-colors"
             >
               {t.save}
             </button>

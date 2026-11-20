@@ -54,7 +54,7 @@ export function CustomerListView({
           <button
             type="button"
             onClick={onAddCustomer}
-            className="min-h-[44px] px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-xs sm:text-sm font-semibold text-white inline-flex items-center gap-1.5"
+            className="min-h-[44px] px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-xs sm:text-sm font-semibold text-white inline-flex items-center gap-1.5"
           >
             <UserPlus className="w-4 h-4" />
             <span>{t.addCustomer}</span>
