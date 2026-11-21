@@ -25,6 +25,8 @@ interface DashboardViewProps {
   onAddCustomer: () => void;
   onSelectCustomer: (customerId: string) => void;
   onSendReminder: (summary: CustomerSummary) => void;
+  onOpenCustomersTab: () => void;
+  onOpenTodaysCollections: () => void;
   onOpenOverdueTab: () => void;
   onExportAllCsv: () => void;
 }
@@ -41,6 +43,8 @@ export function DashboardView({
   onAddCustomer,
   onSelectCustomer,
   onSendReminder,
+  onOpenCustomersTab,
+  onOpenTodaysCollections,
   onOpenOverdueTab,
   onExportAllCsv,
 }: DashboardViewProps) {
@@ -103,7 +107,11 @@ export function DashboardView({
 
       {/* 3-Column KPI Strip (Customers, Today's Collections, Overdue) */}
       <section className="grid grid-cols-3 gap-2.5 sm:gap-3" aria-label="Summary metrics">
-        <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 text-center sm:text-left">
+        <button
+          type="button"
+          onClick={onOpenCustomersTab}
+          className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 p-3 sm:p-4 text-center sm:text-left transition-colors cursor-pointer"
+        >
           <div className="mx-auto sm:mx-0 w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
             <Users className="w-4 h-4" />
           </div>
@@ -113,9 +121,13 @@ export function DashboardView({
           <div className="mt-0.5 text-[11px] sm:text-xs font-medium text-slate-500 leading-tight">
             {t.totalCustomers}
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 text-center sm:text-left">
+        <button
+          type="button"
+          onClick={onOpenTodaysCollections}
+          className="bg-white rounded-2xl border border-slate-200 hover:border-emerald-300 p-3 sm:p-4 text-center sm:text-left transition-colors cursor-pointer"
+        >
           <div className="mx-auto sm:mx-0 w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
             <IndianRupee className="w-4 h-4" />
           </div>
@@ -125,12 +137,12 @@ export function DashboardView({
           <div className="mt-0.5 text-[11px] sm:text-xs font-medium text-slate-500 leading-tight">
             {t.todaysCollections}
           </div>
-        </div>
+        </button>
 
         <button
           type="button"
           onClick={onOpenOverdueTab}
-          className="bg-white rounded-2xl border border-slate-200 hover:border-amber-300 p-3 sm:p-4 text-center sm:text-left transition-colors"
+          className="bg-white rounded-2xl border border-slate-200 hover:border-amber-300 p-3 sm:p-4 text-center sm:text-left transition-colors cursor-pointer"
         >
           <div className="mx-auto sm:mx-0 w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
             <Clock className="w-4 h-4" />

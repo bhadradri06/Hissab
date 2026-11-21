@@ -31,6 +31,7 @@ import { LedgerEntryModal } from './components/LedgerEntryModal';
 import { WhatsAppModal } from './components/WhatsAppModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ScreenshotModal } from './components/ScreenshotModal';
+import { TodaysCollectionsModal } from './components/TodaysCollectionsModal';
 
 function makeId(prefix: string): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -130,6 +131,7 @@ export default function App() {
   } | null>(null);
 
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [todaysCollectionsOpen, setTodaysCollectionsOpen] = useState(false);
 
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
@@ -616,6 +618,12 @@ export default function App() {
             }}
             onSelectCustomer={(id) => setSelectedCustomerId(id)}
             onSendReminder={handleOpenWhatsApp}
+            onOpenCustomersTab={() => {
+              setCustomerFilter('all');
+              setSearchQuery('');
+              navigateTab('customers');
+            }}
+            onOpenTodaysCollections={() => setTodaysCollectionsOpen(true)}
             onOpenOverdueTab={() => navigateTab('overdue')}
             onExportAllCsv={() => exportAllCustomersCsv(allSummaries, entries)}
           />
@@ -769,6 +777,20 @@ export default function App() {
         imageUrl={previewImageUrl}
         closeLabel={t.close}
         onClose={() => setPreviewImageUrl(null)}
+      />
+
+      <TodaysCollectionsModal
+        open={todaysCollectionsOpen}
+        customers={customers}
+        entries={entries}
+        t={t}
+        onSelectCustomer={(id) => setSelectedCustomerId(id)}
+        onViewCustomers={() => {
+          setCustomerFilter('all');
+          setSearchQuery('');
+          navigateTab('customers');
+        }}
+        onClose={() => setTodaysCollectionsOpen(false)}
       />
     </div>
   );

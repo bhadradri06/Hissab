@@ -142,6 +142,11 @@ export interface TranslationDict {
   clearAllData: string;
   confirmClearAllTitle: string;
   confirmClearAllBody: string;
+  todaysCollectionsTitle: string;
+  paymentsReceivedCount: string;
+  paymentReceivedSingle: string;
+  noCollectionsToday: string;
+  noCollectionsTodayHint: string;
 }
 
 export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
@@ -275,6 +280,11 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     clearAllData: 'Clear All Data',
     confirmClearAllTitle: 'Clear All Khata Data?',
     confirmClearAllBody: 'All customers and ledger entries on this browser will be erased. Download a backup first if needed.',
+    todaysCollectionsTitle: "Today's Collections Breakup",
+    paymentsReceivedCount: 'payments',
+    paymentReceivedSingle: 'payment',
+    noCollectionsToday: 'No payments recorded today',
+    noCollectionsTodayHint: "Payments recorded with today's date will appear here showing who paid.",
   },
   hi: {
     appName: 'हिसाब',
@@ -406,6 +416,11 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     clearAllData: 'सारा डेटा मिटाएं',
     confirmClearAllTitle: 'सारा खाता डेटा मिटाएं?',
     confirmClearAllBody: 'इस ब्राउज़र के सभी ग्राहक और एंट्री हट जाएंगे। जरूरत हो तो पहले बैकअप लें।',
+    todaysCollectionsTitle: 'आज की वसूली का विवरण',
+    paymentsReceivedCount: 'भुगतान',
+    paymentReceivedSingle: 'भुगतान',
+    noCollectionsToday: 'आज कोई भुगतान दर्ज नहीं हुआ',
+    noCollectionsTodayHint: 'आज की तारीख में दर्ज भुगतान यहाँ ग्राहक के नाम के साथ दिखेंगे।',
   },
   te: {
     appName: 'హిసాబ్',
@@ -537,5 +552,10 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     clearAllData: 'మొత్తం డేటా తొలగించండి',
     confirmClearAllTitle: 'మొత్తం ఖాతా డేటాను తొలగించాలా?',
     confirmClearAllBody: 'ఈ బ్రౌజర్లోని అన్ని కస్టమర్లు మరియు ఖాతా ఎంట్రీలు తొలగించబడతాయి. అవసరమైతే ముందుగా బ్యాకప్ తీసుకోండి.',
+    todaysCollectionsTitle: 'నేటి వసూలు వివరాలు',
+    paymentsReceivedCount: 'చెల్లింపులు',
+    paymentReceivedSingle: 'చెల్లింపు',
+    noCollectionsToday: 'ఈరోజు ఎటువంటి చెల్లింపు నమోదు కాలేదు',
+    noCollectionsTodayHint: 'నేటి తేదీతో నమోదు చేసిన చెల్లింపులు ఇక్కడ కస్టమర్ వివరాలతో కనిపిస్తాయి.',
   },
 };
