@@ -822,6 +822,7 @@ export default function App() {
               }
               onDeleteEntry={handleRequestDeleteEntry}
               onSendReminder={() => handleOpenWhatsApp(selectedSummary)}
+              onSaveUpiId={(upiId) => handleSaveSettings({ ...settings, upiId })}
               onExportCsv={() =>
                 exportCustomerLedgerCsv(selectedSummary, selectedCustomerEntries)
               }
@@ -1025,6 +1026,8 @@ export default function App() {
         customers={
           !selectedSummary && !entryModalState.editingEntry ? customers : undefined
         }
+        summaries={allSummaries}
+        settings={settings}
         initialCustomerId={entryModalState.customerId}
         initialType={entryModalState.type}
         initialAmount={entryModalState.amount}
@@ -1032,6 +1035,12 @@ export default function App() {
         editingEntry={entryModalState.editingEntry}
         t={t}
         onSave={handleSaveEntry}
+        onSaveUpiId={(upiId) => handleSaveSettings({ ...settings, upiId })}
+        onSendReminder={handleOpenWhatsApp}
+        onSelectCustomerForStatement={(id) => {
+          setSelectedCustomerId(id);
+          window.setTimeout(() => window.print(), 150);
+        }}
         onClose={() =>
           setEntryModalState((prev) => ({
             ...prev,

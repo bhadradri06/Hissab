@@ -92,6 +92,9 @@ export interface TranslationDict {
   scanToPayUpi: string;
   printStatement: string;
   statementHeading: string;
+  fillFullBalance: string;
+  configureUpiInline: string;
+  saveUpiBtn: string;
   // Ledger Entries
   credit: string;
   payment: string;
@@ -261,10 +264,13 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     noLedgerEntries: 'No ledger entries yet',
     noLedgerEntriesHint: 'Tap "+ Add Credit" when giving goods or "+ Receive Payment" when paid.',
     upiPayLinkLabel: 'UPI Pay Link',
-    upiQrCodeLabel: 'UPI QR Code',
+    upiQrCodeLabel: 'UPI QR code',
     scanToPayUpi: 'Customer can scan with GPay, PhonePe, or Paytm for exact balance',
     printStatement: 'Statement (PDF)',
     statementHeading: 'Customer Account Statement',
+    fillFullBalance: 'Fill full due',
+    configureUpiInline: 'Enter your Shop UPI ID to generate pay links & QR codes:',
+    saveUpiBtn: 'Save UPI ID',
     credit: 'Credit',
     payment: 'Payment',
     creditDescription: 'Goods given on credit',
@@ -430,6 +436,9 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     scanToPayUpi: 'सही बकाया राशि चुकाने के लिए GPay, PhonePe या Paytm से स्कैन करें',
     printStatement: 'स्टेटमेंट (PDF)',
     statementHeading: 'ग्राहक खाता विवरण',
+    fillFullBalance: 'पूरा बकाया भरें',
+    configureUpiInline: 'पे लिंक और QR कोड बनाने के लिए दुकान की UPI ID लिखें:',
+    saveUpiBtn: 'UPI ID सेव करें',
     credit: 'उधार',
     payment: 'भुगतान',
     creditDescription: 'ग्राहक को उधार दिया गया सामान',
@@ -595,6 +604,9 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     scanToPayUpi: 'ఖచ్చితమైన బ్యాలెన్స్ చెల్లించడానికి GPay, PhonePe లేదా Paytm తో స్కాన్ చేయండి',
     printStatement: 'స్టేట్మెంట్ (PDF)',
     statementHeading: 'కస్టమర్ ఖాతా స్టేట్మెంట్',
+    fillFullBalance: 'పూర్తి బాకీ నింపండి',
+    configureUpiInline: 'పే లింక్ మరియు QR కోడ్ కోసం మీ షాప్ UPI ID నమోదు చేయండి:',
+    saveUpiBtn: 'UPI ID సేవ్ చేయండి',
     credit: 'బాకీ',
     payment: 'చెల్లింపు',
     creditDescription: 'కస్టమర్కు బాకీగా ఇచ్చిన సరుకులు',

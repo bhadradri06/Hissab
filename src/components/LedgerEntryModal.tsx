@@ -1,14 +1,35 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Camera, Check, Eye, Loader2, Trash2, X } from 'lucide-react';
-import type { Customer, EntryType, LedgerEntry } from '../types';
+import QRCode from 'qrcode';
+import {
+  Camera,
+  Check,
+  Eye,
+  FileText,
+  Link2,
+  Loader2,
+  MessageCircle,
+  QrCode,
+  Trash2,
+  X,
+} from 'lucide-react';
+import type { AppSettings, Customer, CustomerSummary, EntryType, LedgerEntry } from '../types';
 import type { TranslationDict } from '../i18n/translations';
-import { formatIndianDate, formatINR, getTodayISO, isValidISODate, roundCurrency } from '../utils/ledger';
+import {
+  formatIndianDate,
+  formatINR,
+  getTodayISO,
+  isValidISODate,
+  roundCurrency,
+} from '../utils/ledger';
 import { processScreenshotFile } from '../utils/image';
+import { buildUpiPaymentLink } from '../utils/whatsapp';
 
 interface LedgerEntryModalProps {
   open: boolean;
   customerName?: string;
   customers?: Customer[];
+  summaries?: CustomerSummary[];
+  settings: AppSettings;
   initialCustomerId?: string | null;
   initialType: EntryType;
   initialAmount?: number | null;
@@ -24,6 +45,9 @@ interface LedgerEntryModalProps {
     note: string;
     screenshotDataUrl?: string;
   }) => Promise<void> | void;
+  onSaveUpiId?: (upiId: string) => Promise<void> | void;
+  onSendReminder?: (summary: CustomerSummary) => void;
+  onSelectCustomerForStatement?: (customerId: string) => void;
   onClose: () => void;
   onPreviewImage: (dataUrl: string) => void;
 }
@@ -39,6 +63,8 @@ export function LedgerEntryModal({
   open,
   customerName,
   customers,
+  summaries,
+  settings,
   initialCustomerId,
   initialType,
   initialAmount,
@@ -46,6 +72,9 @@ export function LedgerEntryModal({
   editingEntry,
   t,
   onSave,
+  onSaveUpiId,
+  onSendReminder,
+  onSelectCustomerForStatement,
   onClose,
   onPreviewImage,
 }: LedgerEntryModalProps) {
@@ -63,9 +92,21 @@ export function LedgerEntryModal({
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [showQr, setShowQr] = useState(false);
+  const [showUpiInput, setShowUpiInput] = useState(false);
+  const [inlineUpi, setInlineUpi] = useState(settings.upiId);
+  const [qrSvgMarkup, setQrSvgMarkup] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const showCustomerSelector = Boolean(customers && customers.length > 0 && !customerName && !editingEntry);
+  const showCustomerSelector = Boolean(
+    customers && customers.length > 0 && !customerName && !editingEntry
+  );
+
+  useEffect(() => {
+    setInlineUpi(settings.upiId);
+  }, [settings.upiId]);
 
   useEffect(() => {
     if (!open) return;
@@ -89,12 +130,51 @@ export function LedgerEntryModal({
     setOcrState({ status: 'idle', detectedAmount: null, detectedDate: null, message: '' });
     setError(null);
     setSubmitting(false);
+    setShowQr(false);
+    setShowUpiInput(false);
   }, [open, initialType, initialAmount, initialNote, initialCustomerId, editingEntry, customers]);
+
+  const activeSummary =
+    summaries?.find((s) => s.customer.id === (selectedCustomerId || initialCustomerId)) ?? null;
+  const activeBalance = activeSummary?.balance ?? 0;
+
+  const parsedEntered = Number(amountStr);
+  const qrAmount =
+    Number.isFinite(parsedEntered) && parsedEntered > 0
+      ? roundCurrency(parsedEntered)
+      : Math.max(0, activeBalance);
+
+  const upiLink = buildUpiPaymentLink(settings.upiId, settings.shopName, qrAmount);
+
+  useEffect(() => {
+    let active = true;
+    if (!open || !showQr || !upiLink) {
+      setQrSvgMarkup('');
+      return;
+    }
+    QRCode.toString(upiLink, {
+      type: 'svg',
+      width: 152,
+      margin: 1,
+      color: { dark: '#0B1411', light: '#FFFFFF' },
+    })
+      .then((svg) => {
+        if (active) setQrSvgMarkup(svg);
+      })
+      .catch(() => {
+        if (active) setQrSvgMarkup('');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, showQr, upiLink]);
 
   if (!open) return null;
 
   const activeCustomerLabel =
     customerName ||
+    activeSummary?.customer.name ||
     customers?.find((c) => c.id === selectedCustomerId)?.name ||
     '';
 
@@ -177,6 +257,14 @@ export function LedgerEntryModal({
     }
   };
 
+  const handleSaveInlineUpi = async () => {
+    const cleaned = inlineUpi.trim();
+    if (!cleaned || !cleaned.includes('@') || !onSaveUpiId) return;
+    await onSaveUpiId(cleaned);
+    setShowUpiInput(false);
+    setShowQr(true);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (showCustomerSelector && !selectedCustomerId) {
@@ -230,7 +318,10 @@ export function LedgerEntryModal({
         <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-stone-300 dark:bg-emerald-800 sm:hidden" />
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-stone-100 dark:border-emerald-950">
           <div className="min-w-0">
-            <h2 id="entry-modal-title" className="text-lg font-semibold text-stone-900 dark:text-stone-100 truncate">
+            <h2
+              id="entry-modal-title"
+              className="text-lg font-semibold text-stone-900 dark:text-stone-100 truncate"
+            >
               {modalTitle}
             </h2>
             <p className="text-xs text-stone-500 dark:text-stone-400 truncate">
@@ -260,7 +351,10 @@ export function LedgerEntryModal({
 
           {showCustomerSelector && customers && (
             <div>
-              <label htmlFor="entry-customer-select" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+              <label
+                htmlFor="entry-customer-select"
+                className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5"
+              >
                 {t.selectCustomerLabel} <span className="text-red-600">*</span>
               </label>
               <select
@@ -306,9 +400,23 @@ export function LedgerEntryModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label htmlFor="entry-amount" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
-                {t.amount} <span className="text-red-600">*</span>
-              </label>
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <label
+                  htmlFor="entry-amount"
+                  className="block text-sm font-medium text-stone-700 dark:text-stone-300"
+                >
+                  {t.amount} <span className="text-red-600">*</span>
+                </label>
+                {entryType === 'payment' && activeBalance > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAmountStr(String(activeBalance))}
+                    className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline font-num whitespace-nowrap"
+                  >
+                    {t.fillFullBalance}: {formatINR(activeBalance)}
+                  </button>
+                )}
+              </div>
               <input
                 id="entry-amount"
                 type="number"
@@ -324,7 +432,10 @@ export function LedgerEntryModal({
             </div>
 
             <div>
-              <label htmlFor="entry-date" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+              <label
+                htmlFor="entry-date"
+                className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5"
+              >
                 {t.date} <span className="text-red-600">*</span>
               </label>
               <input
@@ -334,35 +445,186 @@ export function LedgerEntryModal({
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-sm font-num text-stone-900 dark:text-stone-100 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
               />
-              <p className="mt-1 text-xs text-stone-500 dark:text-stone-400 font-num">{formatIndianDate(date)}</p>
+              <p className="mt-1 text-xs text-stone-500 dark:text-stone-400 font-num">
+                {formatIndianDate(date)}
+              </p>
             </div>
           </div>
 
           <div>
-            <label htmlFor="entry-note" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
-              {t.note}
-            </label>
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <label
+                htmlFor="entry-note"
+                className="block text-sm font-medium text-stone-700 dark:text-stone-300"
+              >
+                {t.note}
+              </label>
+              {entryType === 'payment' && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  {(['Cash', 'UPI / GPay', 'PhonePe'] as const).map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setNote(preset)}
+                      className={`px-2 py-0.5 rounded-md border transition-colors ${
+                        note === preset
+                          ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-semibold'
+                          : 'border-stone-200 dark:border-emerald-900 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <input
               id="entry-note"
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={entryType === 'credit' ? 'e.g. Rice 10kg, Dal 2kg' : 'e.g. Cash or GPay'}
+              placeholder={
+                entryType === 'credit' ? 'e.g. Rice 10kg, Dal 2kg' : 'e.g. Cash or GPay'
+              }
               className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-base text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
             />
           </div>
+
+          {/* Forest Emerald Collect & Share Action Strip (from second attached snip) */}
+          {entryType === 'payment' && activeSummary && (
+            <div className="rounded-2xl bg-[#0E5C45] dark:bg-[#0D3D2E] p-3 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSendReminder) {
+                      onClose();
+                      onSendReminder(activeSummary);
+                    }
+                  }}
+                  disabled={!onSendReminder || activeBalance <= 0}
+                  className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-[#0F7A3F] hover:bg-[#138c49] border border-emerald-400/25 disabled:opacity-45 disabled:cursor-not-allowed text-xs font-semibold text-white inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t.sendReminder}</span>
+                </button>
+
+                {upiLink && qrAmount > 0 ? (
+                  <a
+                    href={upiLink}
+                    className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-white/12 hover:bg-white/20 border border-white/25 text-xs font-semibold text-white inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
+                  >
+                    <Link2 className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{t.upiPayLinkLabel}</span>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!settings.upiId.trim()) {
+                        setShowUpiInput((p) => !p);
+                      }
+                    }}
+                    disabled={qrAmount <= 0}
+                    className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-white/12 hover:bg-white/20 border border-white/25 disabled:opacity-45 disabled:cursor-not-allowed text-xs font-semibold text-white inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
+                  >
+                    <Link2 className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{t.upiPayLinkLabel}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!settings.upiId.trim()) {
+                      setShowUpiInput((p) => !p);
+                      return;
+                    }
+                    setShowQr((p) => !p);
+                    setShowUpiInput(false);
+                  }}
+                  disabled={qrAmount <= 0}
+                  aria-expanded={showQr}
+                  className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-white/12 hover:bg-white/20 border border-white/25 disabled:opacity-45 disabled:cursor-not-allowed text-xs font-semibold text-white inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
+                >
+                  <QrCode className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t.upiQrCodeLabel}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onSelectCustomerForStatement) {
+                      onSelectCustomerForStatement(activeSummary.customer.id);
+                    }
+                  }}
+                  className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-white/12 hover:bg-white/20 border border-white/25 text-xs font-semibold text-white inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t.printStatement}</span>
+                </button>
+              </div>
+
+              {showUpiInput && !settings.upiId.trim() && (
+                <div className="rounded-xl bg-white dark:bg-[#13201B] p-3 flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={inlineUpi}
+                    onChange={(e) => setInlineUpi(e.target.value)}
+                    placeholder={t.upiIdPlaceholder}
+                    className="flex-1 min-h-[40px] rounded-lg border border-stone-300 dark:border-emerald-800 bg-stone-50 dark:bg-[#0B1411] px-3 py-1.5 text-xs font-num text-stone-900 dark:text-stone-100 focus:outline-none focus:border-emerald-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveInlineUpi()}
+                    className="min-h-[40px] px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-xs font-semibold text-white whitespace-nowrap"
+                  >
+                    {t.saveUpiBtn}
+                  </button>
+                </div>
+              )}
+
+              {showQr && upiLink && qrSvgMarkup && (
+                <div className="rounded-xl bg-white p-3 flex items-center gap-3 text-stone-900">
+                  <div
+                    className="shrink-0"
+                    dangerouslySetInnerHTML={{ __html: qrSvgMarkup }}
+                  />
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold font-num text-emerald-700">
+                      {formatINR(qrAmount)}
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-stone-600 leading-snug">
+                      {t.scanToPayUpi}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-num text-stone-500 truncate">
+                      {settings.upiId}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Payment Screenshot + OCR (Payment entries only) */}
           {entryType === 'payment' && (
             <div className="rounded-2xl border border-stone-200 dark:border-emerald-900/70 bg-stone-50 dark:bg-[#0B1411] p-3.5 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-stone-800 dark:text-stone-200">{t.paymentScreenshot}</span>
+                <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                  {t.paymentScreenshot}
+                </span>
                 {screenshotDataUrl && (
                   <button
                     type="button"
                     onClick={() => {
                       setScreenshotDataUrl(undefined);
-                      setOcrState({ status: 'idle', detectedAmount: null, detectedDate: null, message: '' });
+                      setOcrState({
+                        status: 'idle',
+                        detectedAmount: null,
+                        detectedDate: null,
+                        message: '',
+                      });
                     }}
                     className="inline-flex items-center gap-1 min-h-[36px] px-2.5 rounded-lg text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
                   >
