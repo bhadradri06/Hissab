@@ -46,16 +46,16 @@ export function OverdueView({
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900">{t.overdueTitle}</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{t.overdueSubtitle}</p>
+          <h1 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100">{t.overdueTitle}</h1>
+          <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-0.5">{t.overdueSubtitle}</p>
         </div>
-        <span className="text-xs sm:text-sm font-medium text-slate-500 font-num whitespace-nowrap">
+        <span className="text-xs sm:text-sm font-medium text-stone-500 dark:text-stone-400 font-num whitespace-nowrap">
           {t.todayLabel}: {formatIndianDate(getTodayISO())}
         </span>
       </div>
 
       {/* Days Filter Bar */}
-      <div className="flex items-center gap-1 p-1 bg-slate-200/70 rounded-xl overflow-x-auto">
+      <div className="flex items-center gap-1 p-1 bg-stone-200/80 dark:bg-[#13201B] border border-transparent dark:border-emerald-950 rounded-xl overflow-x-auto">
         {filters.map((f) => {
           const active = minDays === f.days;
           return (
@@ -65,8 +65,8 @@ export function OverdueView({
               onClick={() => setMinDays(f.days)}
               className={`min-h-[40px] px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap shrink-0 transition-colors ${
                 active
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-emerald-800 text-stone-900 dark:text-white shadow-xs'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
               }`}
             >
               {f.label}
@@ -76,12 +76,12 @@ export function OverdueView({
       </div>
 
       {dueCustomers.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-          <div className="mx-auto w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+        <div className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-8 text-center">
+          <div className="mx-auto w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5" />
           </div>
-          <h3 className="mt-3 text-base font-semibold text-slate-900">{t.noOverdueTitle}</h3>
-          <p className="mt-1 text-sm text-slate-500">{t.noOverdueHint}</p>
+          <h3 className="mt-3 text-base font-semibold text-stone-900 dark:text-stone-100">{t.noOverdueTitle}</h3>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t.noOverdueHint}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -91,27 +91,27 @@ export function OverdueView({
             return (
               <div
                 key={s.customer.id}
-                className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col justify-between gap-3"
+                className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-4 flex flex-col justify-between gap-3"
               >
                 <button
                   type="button"
                   onClick={() => onSelectCustomer(s.customer.id)}
-                  className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg"
+                  className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 rounded-lg"
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-base font-semibold text-slate-900 truncate">
+                    <span className="text-base font-semibold text-stone-900 dark:text-stone-100 truncate">
                       {s.customer.name}
                     </span>
-                    <span className="text-lg font-bold font-num text-red-600 shrink-0">
+                    <span className="text-lg font-bold font-num text-red-600 dark:text-red-400 shrink-0">
                       {formatINR(s.balance)}
                     </span>
                   </div>
 
-                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 dark:text-stone-400">
                     <span className="font-num">+91 {s.customer.phone}</span>
                     <span
                       className={`inline-flex items-center gap-1 font-semibold font-num ${
-                        isSevere ? 'text-red-600' : 'text-amber-700'
+                        isSevere ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'
                       }`}
                     >
                       <Clock className="w-3.5 h-3.5" />
@@ -119,7 +119,7 @@ export function OverdueView({
                     </span>
                   </div>
 
-                  <div className="mt-1.5 text-xs text-slate-500 font-num">
+                  <div className="mt-1.5 text-xs text-stone-500 dark:text-stone-400 font-num">
                     {s.lastPaymentDate
                       ? `${t.lastPaymentDate}: ${formatIndianDate(s.lastPaymentDate)}`
                       : `${t.noPaymentYet} · ${t.basedOnFirstCredit}: ${formatIndianDate(

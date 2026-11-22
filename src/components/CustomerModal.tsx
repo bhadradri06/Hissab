@@ -95,21 +95,21 @@ export function CustomerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 backdrop-blur-xs p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/55 backdrop-blur-xs p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="customer-modal-title"
     >
-      <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-xl">
-        <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-slate-300 sm:hidden" />
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
-          <h2 id="customer-modal-title" className="text-lg font-semibold text-slate-900">
+      <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-[#13201B] rounded-t-3xl sm:rounded-2xl border border-stone-200 dark:border-emerald-900/70 shadow-xl">
+        <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-stone-300 dark:bg-emerald-800 sm:hidden" />
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-stone-100 dark:border-emerald-950">
+          <h2 id="customer-modal-title" className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             {editingCustomer ? t.editCustomer : t.addCustomer}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-emerald-950 hover:text-stone-800 dark:hover:text-stone-100"
             aria-label={t.close}
           >
             <X className="w-5 h-5" />
@@ -120,14 +120,14 @@ export function CustomerModal({
           {error && (
             <div
               role="alert"
-              className="rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-sm text-red-700 font-medium"
+              className="rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 px-3.5 py-2.5 text-sm text-red-700 dark:text-red-300 font-medium"
             >
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="cust-name" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="cust-name" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
               {t.customerName} <span className="text-red-600">*</span>
             </label>
             <input
@@ -137,16 +137,16 @@ export function CustomerModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Ramesh Kumar"
               autoFocus
-              className="w-full min-h-[46px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+              className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-base text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
             />
           </div>
 
           <div>
-            <label htmlFor="cust-phone" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="cust-phone" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
               {t.phoneNumber} <span className="text-red-600">*</span>
             </label>
-            <div className="flex items-center rounded-xl border border-slate-300 bg-white focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/20 overflow-hidden">
-              <span className="px-3 py-2.5 text-sm font-medium text-slate-500 bg-slate-50 border-r border-slate-200 select-none">
+            <div className="flex items-center rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] focus-within:border-emerald-700 focus-within:ring-2 focus-within:ring-emerald-700/20 overflow-hidden">
+              <span className="px-3 py-2.5 text-sm font-medium text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-emerald-950/70 border-r border-stone-200 dark:border-emerald-800 select-none">
                 +91
               </span>
               <input
@@ -157,13 +157,13 @@ export function CustomerModal({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/[^\d\s+-]/g, ''))}
                 placeholder="9876543210"
-                className="w-full min-h-[46px] px-3.5 py-2.5 text-base font-num text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                className="w-full min-h-[46px] px-3.5 py-2.5 text-base font-num text-stone-900 dark:text-stone-100 bg-transparent placeholder:text-stone-400 focus:outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="cust-address" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="cust-address" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
               {t.addressOptional}
             </label>
             <input
@@ -172,12 +172,12 @@ export function CustomerModal({
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Shop / Street / Area"
-              className="w-full min-h-[46px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+              className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-base text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
             />
           </div>
 
           <div>
-            <label htmlFor="cust-notes" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="cust-notes" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
               {t.notesOptional}
             </label>
             <textarea
@@ -186,7 +186,7 @@ export function CustomerModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Monthly ration, pays on 5th..."
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+              className="w-full rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-base text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
             />
           </div>
 
@@ -194,7 +194,7 @@ export function CustomerModal({
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-transparent text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-emerald-950"
             >
               {t.cancel}
             </button>

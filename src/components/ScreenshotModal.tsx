@@ -17,15 +17,15 @@ export function ScreenshotModal({ imageUrl, closeLabel, onClose }: ScreenshotMod
       onClick={onClose}
     >
       <div
-        className="relative max-w-2xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200"
+        className="relative max-w-2xl w-full bg-white dark:bg-[#13201B] rounded-2xl overflow-hidden shadow-2xl border border-stone-200 dark:border-emerald-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
-          <span className="text-sm font-semibold text-slate-800">Payment Receipt</span>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-stone-100 dark:border-emerald-950">
+          <span className="text-sm font-semibold text-stone-800 dark:text-stone-100">Payment Receipt</span>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100"
+            className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-emerald-950"
             aria-label={closeLabel}
           >
             <X className="w-5 h-5" />

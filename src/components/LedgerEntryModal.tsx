@@ -1,18 +1,23 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Camera, Check, Eye, Loader2, Trash2, X } from 'lucide-react';
-import type { EntryType, LedgerEntry } from '../types';
+import type { Customer, EntryType, LedgerEntry } from '../types';
 import type { TranslationDict } from '../i18n/translations';
 import { formatIndianDate, formatINR, getTodayISO, isValidISODate, roundCurrency } from '../utils/ledger';
 import { processScreenshotFile } from '../utils/image';
 
 interface LedgerEntryModalProps {
   open: boolean;
-  customerName: string;
+  customerName?: string;
+  customers?: Customer[];
+  initialCustomerId?: string | null;
   initialType: EntryType;
+  initialAmount?: number | null;
+  initialNote?: string;
   editingEntry: LedgerEntry | null;
   t: TranslationDict;
   onSave: (data: {
     id?: string;
+    customerId?: string;
     type: EntryType;
     amount: number;
     date: string;
@@ -33,13 +38,18 @@ interface OcrResultState {
 export function LedgerEntryModal({
   open,
   customerName,
+  customers,
+  initialCustomerId,
   initialType,
+  initialAmount,
+  initialNote,
   editingEntry,
   t,
   onSave,
   onClose,
   onPreviewImage,
 }: LedgerEntryModalProps) {
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [entryType, setEntryType] = useState<EntryType>(initialType);
   const [amountStr, setAmountStr] = useState('');
   const [date, setDate] = useState(getTodayISO());
@@ -55,27 +65,38 @@ export function LedgerEntryModal({
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const showCustomerSelector = Boolean(customers && customers.length > 0 && !customerName && !editingEntry);
+
   useEffect(() => {
     if (!open) return;
     if (editingEntry) {
+      setSelectedCustomerId(editingEntry.customerId);
       setEntryType(editingEntry.type);
       setAmountStr(String(editingEntry.amount));
       setDate(editingEntry.date);
       setNote(editingEntry.note);
       setScreenshotDataUrl(editingEntry.screenshotDataUrl);
     } else {
+      const fallbackCustomerId =
+        initialCustomerId || (customers && customers.length > 0 ? customers[0].id : '');
+      setSelectedCustomerId(fallbackCustomerId);
       setEntryType(initialType);
-      setAmountStr('');
+      setAmountStr(initialAmount && initialAmount > 0 ? String(initialAmount) : '');
       setDate(getTodayISO());
-      setNote('');
+      setNote(initialNote ?? '');
       setScreenshotDataUrl(undefined);
     }
     setOcrState({ status: 'idle', detectedAmount: null, detectedDate: null, message: '' });
     setError(null);
     setSubmitting(false);
-  }, [open, initialType, editingEntry]);
+  }, [open, initialType, initialAmount, initialNote, initialCustomerId, editingEntry, customers]);
 
   if (!open) return null;
+
+  const activeCustomerLabel =
+    customerName ||
+    customers?.find((c) => c.id === selectedCustomerId)?.name ||
+    '';
 
   const runOcr = async (dataUrl: string) => {
     setOcrState({
@@ -158,6 +179,10 @@ export function LedgerEntryModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (showCustomerSelector && !selectedCustomerId) {
+      setError(t.errCustomerRequired);
+      return;
+    }
     const parsedAmount = Number(amountStr);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       setError(t.errAmountInvalid);
@@ -173,6 +198,7 @@ export function LedgerEntryModal({
     try {
       await onSave({
         id: editingEntry?.id,
+        customerId: selectedCustomerId || undefined,
         type: entryType,
         amount: roundCurrency(parsedAmount),
         date,
@@ -195,26 +221,27 @@ export function LedgerEntryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/50 backdrop-blur-xs p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/55 backdrop-blur-xs p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="entry-modal-title"
     >
-      <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-xl">
-        <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-slate-300 sm:hidden" />
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+      <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-[#13201B] rounded-t-3xl sm:rounded-2xl border border-stone-200 dark:border-emerald-900/70 shadow-xl">
+        <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-stone-300 dark:bg-emerald-800 sm:hidden" />
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-stone-100 dark:border-emerald-950">
           <div className="min-w-0">
-            <h2 id="entry-modal-title" className="text-lg font-semibold text-slate-900 truncate">
+            <h2 id="entry-modal-title" className="text-lg font-semibold text-stone-900 dark:text-stone-100 truncate">
               {modalTitle}
             </h2>
-            <p className="text-xs text-slate-500 truncate">
-              {customerName} · {entryType === 'credit' ? t.creditDescription : t.paymentDescription}
+            <p className="text-xs text-stone-500 dark:text-stone-400 truncate">
+              {activeCustomerLabel ? `${activeCustomerLabel} · ` : ''}
+              {entryType === 'credit' ? t.creditDescription : t.paymentDescription}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 shrink-0"
+            className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-emerald-950 hover:text-stone-800 dark:hover:text-stone-100 shrink-0"
             aria-label={t.close}
           >
             <X className="w-5 h-5" />
@@ -225,21 +252,41 @@ export function LedgerEntryModal({
           {error && (
             <div
               role="alert"
-              className="rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-sm text-red-700 font-medium"
+              className="rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 px-3.5 py-2.5 text-sm text-red-700 dark:text-red-300 font-medium"
             >
               {error}
             </div>
           )}
 
+          {showCustomerSelector && customers && (
+            <div>
+              <label htmlFor="entry-customer-select" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+                {t.selectCustomerLabel} <span className="text-red-600">*</span>
+              </label>
+              <select
+                id="entry-customer-select"
+                value={selectedCustomerId}
+                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-sm font-medium text-stone-900 dark:text-stone-100 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
+              >
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} (+91 {c.phone})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Segmented Type Selector */}
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-100 dark:bg-[#0B1411] rounded-xl">
             <button
               type="button"
               onClick={() => setEntryType('credit')}
               className={`min-h-[42px] rounded-lg text-sm font-semibold transition-colors ${
                 entryType === 'credit'
                   ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
               }`}
             >
               {t.credit}
@@ -250,7 +297,7 @@ export function LedgerEntryModal({
               className={`min-h-[42px] rounded-lg text-sm font-semibold transition-colors ${
                 entryType === 'payment'
                   ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
               }`}
             >
               {t.payment}
@@ -259,7 +306,7 @@ export function LedgerEntryModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label htmlFor="entry-amount" className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label htmlFor="entry-amount" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                 {t.amount} <span className="text-red-600">*</span>
               </label>
               <input
@@ -272,12 +319,12 @@ export function LedgerEntryModal({
                 onChange={(e) => setAmountStr(e.target.value)}
                 placeholder="0"
                 autoFocus
-                className="w-full min-h-[46px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-lg font-semibold font-num text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-lg font-semibold font-num text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
               />
             </div>
 
             <div>
-              <label htmlFor="entry-date" className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label htmlFor="entry-date" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                 {t.date} <span className="text-red-600">*</span>
               </label>
               <input
@@ -285,14 +332,14 @@ export function LedgerEntryModal({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full min-h-[46px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-num text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-sm font-num text-stone-900 dark:text-stone-100 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
               />
-              <p className="mt-1 text-xs text-slate-500 font-num">{formatIndianDate(date)}</p>
+              <p className="mt-1 text-xs text-stone-500 dark:text-stone-400 font-num">{formatIndianDate(date)}</p>
             </div>
           </div>
 
           <div>
-            <label htmlFor="entry-note" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="entry-note" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
               {t.note}
             </label>
             <input
@@ -301,15 +348,15 @@ export function LedgerEntryModal({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={entryType === 'credit' ? 'e.g. Rice 10kg, Dal 2kg' : 'e.g. Cash or GPay'}
-              className="w-full min-h-[46px] rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+              className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2.5 text-base text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
             />
           </div>
 
           {/* Payment Screenshot + OCR (Payment entries only) */}
           {entryType === 'payment' && (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 space-y-3">
+            <div className="rounded-2xl border border-stone-200 dark:border-emerald-900/70 bg-stone-50 dark:bg-[#0B1411] p-3.5 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-slate-800">{t.paymentScreenshot}</span>
+                <span className="text-sm font-medium text-stone-800 dark:text-stone-200">{t.paymentScreenshot}</span>
                 {screenshotDataUrl && (
                   <button
                     type="button"
@@ -317,7 +364,7 @@ export function LedgerEntryModal({
                       setScreenshotDataUrl(undefined);
                       setOcrState({ status: 'idle', detectedAmount: null, detectedDate: null, message: '' });
                     }}
-                    className="inline-flex items-center gap-1 min-h-[36px] px-2.5 rounded-lg text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
+                    className="inline-flex items-center gap-1 min-h-[36px] px-2.5 rounded-lg text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     {t.removeScreenshot}
@@ -337,31 +384,31 @@ export function LedgerEntryModal({
               {!screenshotDataUrl ? (
                 <label
                   htmlFor="screenshot-upload"
-                  className="flex items-center justify-center gap-2 min-h-[48px] w-full rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:border-blue-500 hover:text-blue-700 cursor-pointer transition-colors"
+                  className="flex items-center justify-center gap-2 min-h-[48px] w-full rounded-xl border border-dashed border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#13201B] px-4 py-3 text-sm font-medium text-stone-700 dark:text-stone-300 hover:border-emerald-600 hover:text-emerald-700 dark:hover:text-emerald-400 cursor-pointer transition-colors"
                 >
                   <Camera className="w-4 h-4 shrink-0" />
                   <span>{t.uploadScreenshot}</span>
                 </label>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-2.5">
+                  <div className="flex items-center gap-3 bg-white dark:bg-[#13201B] rounded-xl border border-stone-200 dark:border-emerald-900 p-2.5">
                     <img
                       src={screenshotDataUrl}
                       alt="Payment screenshot thumbnail"
-                      className="w-16 h-16 rounded-lg object-cover border border-slate-200 shrink-0"
+                      className="w-16 h-16 rounded-lg object-cover border border-stone-200 dark:border-emerald-800 shrink-0"
                     />
                     <div className="flex-1 min-w-0 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => onPreviewImage(screenshotDataUrl)}
-                        className="inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-800"
+                        className="inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg bg-stone-100 dark:bg-emerald-950 hover:bg-stone-200 dark:hover:bg-emerald-900 text-xs font-medium text-stone-800 dark:text-stone-200"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         {t.previewScreenshot}
                       </button>
                       <label
                         htmlFor="screenshot-upload"
-                        className="inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 cursor-pointer"
+                        className="inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-lg border border-stone-200 dark:border-emerald-800 hover:bg-stone-50 dark:hover:bg-emerald-950 text-xs font-medium text-stone-700 dark:text-stone-300 cursor-pointer"
                       >
                         <Camera className="w-3.5 h-3.5" />
                         Change
@@ -370,20 +417,20 @@ export function LedgerEntryModal({
                   </div>
 
                   {ocrState.status === 'loading' && (
-                    <div className="flex items-center gap-2 rounded-xl bg-blue-50 border border-blue-200 px-3 py-2.5 text-xs font-medium text-blue-800">
+                    <div className="flex items-center gap-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 px-3 py-2.5 text-xs font-medium text-blue-800 dark:text-blue-300">
                       <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                       <span>{ocrState.message}</span>
                     </div>
                   )}
 
                   {ocrState.status === 'success' && ocrState.detectedAmount !== null && (
-                    <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 space-y-2">
+                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 p-3 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <div className="text-xs font-medium text-emerald-800">
+                          <div className="text-xs font-medium text-emerald-800 dark:text-emerald-300">
                             {t.ocrDetectedAmount}
                           </div>
-                          <div className="text-lg font-bold font-num text-emerald-900">
+                          <div className="text-lg font-bold font-num text-emerald-900 dark:text-emerald-200">
                             {formatINR(ocrState.detectedAmount)}
                           </div>
                         </div>
@@ -396,14 +443,14 @@ export function LedgerEntryModal({
                           {t.useDetectedAmount}
                         </button>
                       </div>
-                      <p className="text-xs text-emerald-800/90 leading-relaxed">
+                      <p className="text-xs text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed">
                         {t.ocrNotice}
                       </p>
                     </div>
                   )}
 
                   {ocrState.status === 'unavailable' && (
-                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 leading-relaxed">
+                    <div className="rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
                       {ocrState.message}
                     </div>
                   )}
@@ -416,7 +463,7 @@ export function LedgerEntryModal({
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-transparent text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-emerald-950"
             >
               {t.cancel}
             </button>

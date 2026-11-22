@@ -145,12 +145,12 @@ export function SettingsView({
 
   return (
     <div className="space-y-5">
-      <h1 className="text-lg sm:text-xl font-bold text-slate-900">{t.settingsTitle}</h1>
+      <h1 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100">{t.settingsTitle}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Language Switcher */}
-        <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
-          <h2 className="text-base font-semibold text-slate-900">{t.languageLabel}</h2>
+        <section className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-4 sm:p-5 space-y-3">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t.languageLabel}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {languages.map((lang) => {
               const active = settings.language === lang.code;
@@ -162,7 +162,7 @@ export function SettingsView({
                   className={`min-h-[46px] px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
                     active
                       ? 'bg-emerald-700 border-emerald-700 text-white'
-                      : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                      : 'bg-white dark:bg-[#0B1411] border-stone-300 dark:border-emerald-800 text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-emerald-950'
                   }`}
                 >
                   {lang.label}
@@ -173,11 +173,11 @@ export function SettingsView({
         </section>
 
         {/* Shop & UPI Settings */}
-        <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
-          <h2 className="text-base font-semibold text-slate-900 mb-3">{t.shopDetailsTitle}</h2>
+        <section className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-4 sm:p-5">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-3">{t.shopDetailsTitle}</h2>
           <form onSubmit={handleShopSubmit} className="space-y-3">
             <div>
-              <label htmlFor="shop-name" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="shop-name" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 {t.shopNameLabel}
               </label>
               <input
@@ -185,12 +185,12 @@ export function SettingsView({
                 type="text"
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                className="w-full min-h-[44px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2 text-sm text-stone-900 dark:text-stone-100 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
               />
             </div>
 
             <div>
-              <label htmlFor="shop-upi" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="shop-upi" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 {t.upiIdLabel}
               </label>
               <input
@@ -199,9 +199,9 @@ export function SettingsView({
                 value={upiId}
                 onChange={(e) => setUpiId(e.target.value)}
                 placeholder={t.upiIdPlaceholder}
-                className="w-full min-h-[44px] rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-num text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                className="w-full min-h-[44px] rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] px-3.5 py-2 text-sm font-num text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
               />
-              <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+              <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
                 {t.upiVerificationWarning}
               </p>
             </div>
@@ -214,7 +214,7 @@ export function SettingsView({
                 {t.saveSettings}
               </button>
               {savedNotice && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                   <Check className="w-4 h-4" />
                   {t.settingsSaved}
                 </span>
@@ -224,41 +224,41 @@ export function SettingsView({
         </section>
 
         {/* Export CSV & Backup */}
-        <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
-          <h2 className="text-base font-semibold text-slate-900">{t.exportSectionTitle}</h2>
+        <section className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-4 sm:p-5 space-y-3">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t.exportSectionTitle}</h2>
           <div className="grid grid-cols-1 gap-2.5">
             <button
               type="button"
               onClick={() => exportAllCustomersCsv(summaries, entries)}
-              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-sm font-medium text-slate-800 inline-flex items-center justify-start gap-2.5"
+              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] hover:bg-stone-50 dark:hover:bg-emerald-950 text-sm font-medium text-stone-800 dark:text-stone-200 inline-flex items-center justify-start gap-2.5"
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-700 shrink-0" />
+              <FileSpreadsheet className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
               <span>{t.exportAllCsv}</span>
             </button>
 
             <button
               type="button"
               onClick={() => exportOutstandingCustomersCsv(summaries)}
-              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-sm font-medium text-slate-800 inline-flex items-center justify-start gap-2.5"
+              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] hover:bg-stone-50 dark:hover:bg-emerald-950 text-sm font-medium text-stone-800 dark:text-stone-200 inline-flex items-center justify-start gap-2.5"
             >
-              <FileSpreadsheet className="w-4 h-4 text-red-600 shrink-0" />
+              <FileSpreadsheet className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
               <span>{t.exportOutstandingCsv}</span>
             </button>
 
             <button
               type="button"
               onClick={handleDownloadJsonBackup}
-              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-sm font-medium text-slate-800 inline-flex items-center justify-start gap-2.5"
+              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] hover:bg-stone-50 dark:hover:bg-emerald-950 text-sm font-medium text-stone-800 dark:text-stone-200 inline-flex items-center justify-start gap-2.5"
             >
-              <Download className="w-4 h-4 text-blue-700 shrink-0" />
+              <Download className="w-4 h-4 text-blue-700 dark:text-blue-400 shrink-0" />
               <span>{t.exportBackupJson}</span>
             </button>
           </div>
         </section>
 
         {/* JSON Import */}
-        <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
-          <h2 className="text-base font-semibold text-slate-900">{t.importSectionTitle}</h2>
+        <section className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-4 sm:p-5 space-y-3">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t.importSectionTitle}</h2>
 
           <input
             ref={fileInputRef}
@@ -272,7 +272,7 @@ export function SettingsView({
           <div className="flex flex-wrap gap-2.5">
             <label
               htmlFor="json-import-input"
-              className="min-h-[46px] px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-sm font-semibold text-white inline-flex items-center gap-2 cursor-pointer transition-colors"
+              className="min-h-[46px] px-4 py-2.5 rounded-xl bg-stone-900 dark:bg-emerald-700 hover:bg-stone-800 dark:hover:bg-emerald-800 text-sm font-semibold text-white inline-flex items-center gap-2 cursor-pointer transition-colors"
             >
               <FileUp className="w-4 h-4" />
               <span>{t.importJsonButton}</span>
@@ -281,7 +281,7 @@ export function SettingsView({
             <button
               type="button"
               onClick={handleLoadAttachedSample}
-              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-sm font-semibold text-blue-800 inline-flex items-center gap-2 transition-colors"
+              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-sm font-semibold text-emerald-800 dark:text-emerald-200 inline-flex items-center gap-2 transition-colors"
             >
               <FileUp className="w-4 h-4" />
               <span>{t.importAttachedSample}</span>
@@ -290,7 +290,7 @@ export function SettingsView({
             <a
               href="/sample-hisaab-import.json"
               download="sample-hisaab-import.json"
-              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-sm font-medium text-slate-700 inline-flex items-center gap-2"
+              className="min-h-[46px] px-4 py-2.5 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] hover:bg-stone-50 dark:hover:bg-emerald-950 text-sm font-medium text-stone-700 dark:text-stone-200 inline-flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
               <span>{t.downloadSampleJson}</span>
@@ -298,28 +298,28 @@ export function SettingsView({
           </div>
 
           {importSuccessMsg && (
-            <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2.5 text-sm font-medium text-emerald-800">
+            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3.5 py-2.5 text-sm font-medium text-emerald-800 dark:text-emerald-200">
               {importSuccessMsg}
             </div>
           )}
 
           {importPreview && (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <div className="rounded-2xl border border-stone-200 dark:border-emerald-800 bg-stone-50 dark:bg-[#0B1411] p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-slate-900">{t.importPreviewTitle}</h3>
+                <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{t.importPreviewTitle}</h3>
                 <button
                   type="button"
                   onClick={() => setImportPreview(null)}
-                  className="text-xs font-medium text-slate-500 hover:text-slate-900"
+                  className="text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
                 >
                   {t.cancel}
                 </button>
               </div>
 
               {importPreview.errors.length > 0 && (
-                <div className="rounded-xl bg-red-50 border border-red-200 p-3 space-y-1">
+                <div className="rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 p-3 space-y-1">
                   {importPreview.errors.slice(0, 6).map((err, i) => (
-                    <p key={i} className="text-xs text-red-700">
+                    <p key={i} className="text-xs text-red-700 dark:text-red-300">
                       • {err}
                     </p>
                   ))}
@@ -327,9 +327,9 @@ export function SettingsView({
               )}
 
               {importPreview.warnings.length > 0 && (
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-1">
+                <div className="rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 p-3 space-y-1">
                   {importPreview.warnings.slice(0, 4).map((w, i) => (
-                    <p key={i} className="text-xs text-amber-800">
+                    <p key={i} className="text-xs text-amber-800 dark:text-amber-300">
                       • {w}
                     </p>
                   ))}
@@ -337,22 +337,22 @@ export function SettingsView({
               )}
 
               {importPreview.customers.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 text-center bg-white rounded-xl border border-slate-200 p-2.5">
+                <div className="grid grid-cols-3 gap-2 text-center bg-white dark:bg-[#13201B] rounded-xl border border-stone-200 dark:border-emerald-900 p-2.5">
                   <div>
-                    <div className="text-[11px] text-slate-500">{t.importCustomersFound}</div>
-                    <div className="text-base font-bold font-num text-slate-900">
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400">{t.importCustomersFound}</div>
+                    <div className="text-base font-bold font-num text-stone-900 dark:text-stone-100">
                       {importPreview.customers.length}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[11px] text-slate-500">{t.importEntriesFound}</div>
-                    <div className="text-base font-bold font-num text-slate-900">
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400">{t.importEntriesFound}</div>
+                    <div className="text-base font-bold font-num text-stone-900 dark:text-stone-100">
                       {importPreview.totalValidEntries}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[11px] text-slate-500">{t.importDuplicatesFound}</div>
-                    <div className="text-base font-bold font-num text-amber-700">
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400">{t.importDuplicatesFound}</div>
+                    <div className="text-base font-bold font-num text-amber-700 dark:text-amber-400">
                       {importPreview.duplicateCount}
                     </div>
                   </div>
@@ -360,7 +360,7 @@ export function SettingsView({
               )}
 
               {importPreview.valid && importPreview.duplicateCount > 0 && (
-                <div className="space-y-2 text-xs text-slate-700">
+                <div className="space-y-2 text-xs text-stone-700 dark:text-stone-300">
                   <label className="flex items-start gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -388,7 +388,7 @@ export function SettingsView({
                 <button
                   type="button"
                   onClick={handleConfirmImport}
-                  className="w-full min-h-[44px] px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-sm font-semibold text-white"
+                  className="w-full min-h-[44px] px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-sm font-semibold text-white"
                 >
                   {t.confirmImport}
                 </button>
@@ -400,33 +400,33 @@ export function SettingsView({
 
       {/* Local Storage Limitation Notice + Reset */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5 flex gap-3">
-          <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+        <section className="rounded-2xl border border-amber-200 dark:border-amber-900/70 bg-amber-50 dark:bg-amber-950/35 p-4 sm:p-5 flex gap-3">
+          <Info className="w-5 h-5 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <h2 className="text-sm font-semibold text-amber-950">{t.localStorageNoticeTitle}</h2>
-            <p className="mt-1 text-xs leading-relaxed text-amber-900">
+            <h2 className="text-sm font-semibold text-amber-950 dark:text-amber-200">{t.localStorageNoticeTitle}</h2>
+            <p className="mt-1 text-xs leading-relaxed text-amber-900 dark:text-amber-300/90">
               {t.localStorageNoticeBody}
             </p>
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-            <Database className="w-4 h-4 text-slate-500" />
+        <section className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-4 sm:p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+            <Database className="w-4 h-4 text-stone-500 dark:text-stone-400" />
             {t.dataManagementTitle}
           </h2>
           <div className="flex flex-wrap gap-2.5">
             <button
               type="button"
               onClick={onLoadSampleData}
-              className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs sm:text-sm font-medium text-slate-700"
+              className="min-h-[44px] px-4 py-2 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#0B1411] hover:bg-stone-50 dark:hover:bg-emerald-950 text-xs sm:text-sm font-medium text-stone-700 dark:text-stone-200"
             >
               {t.loadSampleData}
             </button>
             <button
               type="button"
               onClick={onClearAllData}
-              className="min-h-[44px] px-4 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-xs sm:text-sm font-semibold text-red-700 inline-flex items-center gap-1.5"
+              className="min-h-[44px] px-4 py-2 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/60 text-xs sm:text-sm font-semibold text-red-700 dark:text-red-300 inline-flex items-center gap-1.5"
             >
               <Trash2 className="w-4 h-4" />
               <span>{t.clearAllData}</span>

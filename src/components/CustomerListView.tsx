@@ -39,14 +39,14 @@ export function CustomerListView({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg sm:text-xl font-bold text-slate-900">
+        <h1 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100">
           {t.navCustomers} ({summaries.length})
         </h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onExportAllCsv}
-            className="min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs sm:text-sm font-medium text-slate-700 inline-flex items-center gap-1.5"
+            className="min-h-[44px] px-3.5 py-2 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#13201B] hover:bg-stone-50 dark:hover:bg-emerald-950 text-xs sm:text-sm font-medium text-stone-700 dark:text-stone-200 inline-flex items-center gap-1.5"
           >
             <Download className="w-4 h-4" />
             <span>{t.exportCsv}</span>
@@ -63,17 +63,17 @@ export function CustomerListView({
       </div>
 
       <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-4 h-4 text-stone-400 dark:text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="search"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={t.searchPlaceholder}
-          className="w-full min-h-[46px] rounded-xl border border-slate-300 bg-white pl-10 pr-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+          className="w-full min-h-[46px] rounded-xl border border-stone-300 dark:border-emerald-900 bg-white dark:bg-[#13201B] pl-10 pr-3.5 py-2.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
         />
       </div>
 
-      <div className="flex items-center gap-1 p-1 bg-slate-200/70 rounded-xl overflow-x-auto">
+      <div className="flex items-center gap-1 p-1 bg-stone-200/80 dark:bg-[#13201B] border border-transparent dark:border-emerald-950 rounded-xl overflow-x-auto">
         {filterOptions.map((opt) => {
           const active = filter === opt.key;
           return (
@@ -83,8 +83,8 @@ export function CustomerListView({
               onClick={() => onFilterChange(opt.key)}
               className={`flex-1 min-h-[40px] px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap shrink-0 transition-colors ${
                 active
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-emerald-800 text-stone-900 dark:text-white shadow-xs'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
               }`}
             >
               {opt.label}
@@ -94,12 +94,12 @@ export function CustomerListView({
       </div>
 
       {summaries.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-          <div className="mx-auto w-11 h-11 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center">
+        <div className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-8 text-center">
+          <div className="mx-auto w-11 h-11 rounded-2xl bg-stone-100 dark:bg-emerald-950 text-stone-500 dark:text-emerald-400 flex items-center justify-center">
             <Users className="w-5 h-5" />
           </div>
-          <h3 className="mt-3 text-base font-semibold text-slate-900">{t.noCustomersFound}</h3>
-          <p className="mt-1 text-sm text-slate-500">{t.noCustomersHint}</p>
+          <h3 className="mt-3 text-base font-semibold text-stone-900 dark:text-stone-100">{t.noCustomersFound}</h3>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t.noCustomersHint}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

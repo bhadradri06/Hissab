@@ -24,27 +24,31 @@ export function CustomerCard({
         daysSinceLastPayment !== null
           ? `${t.statusOverdue} · ${daysSinceLastPayment}${t.daysAgo.charAt(0)}`
           : t.statusOverdue,
-      amountColor: 'text-amber-700',
-      labelColor: 'text-amber-700',
-      avatarBg: 'bg-amber-50 text-amber-800 border-amber-200',
+      amountColor: 'text-amber-700 dark:text-amber-400',
+      labelColor: 'text-amber-700 dark:text-amber-400',
+      avatarBg:
+        'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/70',
     },
     due: {
       label: t.statusDue,
-      amountColor: 'text-red-600',
-      labelColor: 'text-red-600',
-      avatarBg: 'bg-red-50 text-red-700 border-red-200',
+      amountColor: 'text-red-600 dark:text-red-400',
+      labelColor: 'text-red-600 dark:text-red-400',
+      avatarBg:
+        'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/70',
     },
     settled: {
       label: t.statusSettled,
-      amountColor: 'text-emerald-700',
-      labelColor: 'text-emerald-700',
-      avatarBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      amountColor: 'text-emerald-700 dark:text-emerald-400',
+      labelColor: 'text-emerald-700 dark:text-emerald-400',
+      avatarBg:
+        'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/70',
     },
     advance: {
       label: t.statusAdvance,
-      amountColor: 'text-emerald-700',
-      labelColor: 'text-emerald-700',
-      avatarBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      amountColor: 'text-emerald-700 dark:text-emerald-400',
+      labelColor: 'text-emerald-700 dark:text-emerald-400',
+      avatarBg:
+        'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/70',
     },
   }[status];
 
@@ -59,12 +63,12 @@ export function CustomerCard({
     balance < 0 ? formatINR(Math.abs(balance)) : formatINR(balance);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 transition-colors overflow-hidden">
+    <div className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950/90 hover:border-stone-300 dark:hover:border-emerald-800 transition-colors overflow-hidden">
       <div className="flex items-center gap-3 p-3.5 sm:p-4">
         <button
           type="button"
           onClick={() => onSelect(customer.id)}
-          className="flex-1 min-w-0 flex items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-xl"
+          className="flex-1 min-w-0 flex items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 rounded-xl"
         >
           <div
             className={`w-10 h-10 rounded-xl border flex items-center justify-center text-sm font-bold shrink-0 ${statusMeta.avatarBg}`}
@@ -75,7 +79,7 @@ export function CustomerCard({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[15px] font-semibold text-slate-900 truncate">
+              <span className="text-[15px] font-semibold text-stone-900 dark:text-stone-100 truncate">
                 {customer.name}
               </span>
               <span className={`text-base font-bold font-num shrink-0 ${statusMeta.amountColor}`}>
@@ -83,7 +87,7 @@ export function CustomerCard({
               </span>
             </div>
 
-            <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-slate-500">
+            <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-stone-500 dark:text-stone-400">
               <span className="truncate font-num">
                 {customer.phone}
                 <span aria-hidden="true"> · </span>
@@ -97,19 +101,19 @@ export function CustomerCard({
             </div>
           </div>
 
-          <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 hidden sm:block" />
+          <ChevronRight className="w-4 h-4 text-stone-400 dark:text-stone-500 shrink-0 hidden sm:block" />
         </button>
 
         {balance > 0 && (
           <button
             type="button"
             onClick={() => onSendReminder(summary)}
-            className="min-h-[44px] min-w-[44px] px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 flex items-center justify-center gap-1.5 shrink-0 transition-colors"
+            className="min-h-[44px] min-w-[44px] px-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/70 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5 shrink-0 transition-colors"
             title={t.sendReminder}
             aria-label={`${t.sendReminder} - ${customer.name}`}
           >
             <MessageCircle className="w-4 h-4" />
-            <span className="hidden lg:inline text-xs font-semibold whitespace-nowrap">
+            <span className="hidden xl:inline text-xs font-semibold whitespace-nowrap">
               {t.sendReminder}
             </span>
           </button>

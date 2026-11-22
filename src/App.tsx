@@ -1,5 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Clock, Home, Plus, Settings, Users } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Clock,
+  Home,
+  MessageCircle,
+  Moon,
+  Plus,
+  RotateCcw,
+  Settings,
+  Sun,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react';
 import type {
   ActiveTab,
   AppSettings,
@@ -14,6 +26,8 @@ import { TRANSLATIONS } from './i18n/translations';
 import {
   computeAllSummaries,
   computeDashboardMetrics,
+  formatINR,
+  getTodayISO,
   sortEntriesNewestFirst,
 } from './utils/ledger';
 import { exportAllCustomersCsv, exportCustomerLedgerCsv } from './utils/csv';
@@ -103,12 +117,26 @@ function mergeImportIntoState(
 const ATTACHED_SAMPLE_FLAG = 'hisaab_expected_dataset_v2';
 const ATTACHED_SAMPLE_URL = '/assets/aistudio/sample-data_633eb33f.json';
 
+interface UndoToastState {
+  message: string;
+  onUndo?: () => Promise<void> | void;
+  receiptCustomerId?: string;
+}
+
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [storageWarning, setStorageWarning] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      return localStorage.getItem('hisaab_theme') === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -122,8 +150,18 @@ export default function App() {
   const [entryModalState, setEntryModalState] = useState<{
     open: boolean;
     type: EntryType;
+    customerId: string | null;
+    amount: number | null;
+    note: string;
     editingEntry: LedgerEntry | null;
-  }>({ open: false, type: 'credit', editingEntry: null });
+  }>({
+    open: false,
+    type: 'credit',
+    customerId: null,
+    amount: null,
+    note: '',
+    editingEntry: null,
+  });
 
   const [whatsappTarget, setWhatsappTarget] = useState<{
     customer: Customer;
@@ -132,6 +170,9 @@ export default function App() {
 
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [todaysCollectionsOpen, setTodaysCollectionsOpen] = useState(false);
+
+  const [toast, setToast] = useState<UndoToastState | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
 
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
@@ -146,6 +187,34 @@ export default function App() {
     destructive: false,
     onConfirm: () => {},
   });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    try {
+      localStorage.setItem('hisaab_theme', theme);
+    } catch {
+      // ignore
+    }
+  }, [theme]);
+
+  const showToast = (nextToast: UndoToastState) => {
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    setToast(nextToast);
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 6500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -167,7 +236,6 @@ export default function App() {
         }
 
         if (!alreadySynced) {
-          // Remove legacy built-in placeholder records if present so expected dataset totals match cleanly
           finalCustomers = finalCustomers.filter((c) => !c.id.startsWith('cust_sample_'));
           finalEntries = finalEntries.filter((e) => !e.id.startsWith('ent_sample_'));
 
@@ -235,7 +303,6 @@ export default function App() {
   const filteredSummaries = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const sorted = [...allSummaries].sort((a, b) => {
-      // Highest positive balance first, then alphabetical
       if (b.balance !== a.balance) return b.balance - a.balance;
       return a.customer.name.localeCompare(b.customer.name);
     });
@@ -350,16 +417,19 @@ export default function App() {
 
   const handleSaveEntry = async (data: {
     id?: string;
+    customerId?: string;
     type: EntryType;
     amount: number;
     date: string;
     note: string;
     screenshotDataUrl?: string;
   }) => {
-    if (!selectedCustomerId) return;
+    const targetCustId = data.customerId || selectedCustomerId;
+    if (!targetCustId) return;
     const now = new Date().toISOString();
     let targetEntry: LedgerEntry;
     let nextEntries: LedgerEntry[];
+    const previousEntries = entries;
 
     if (data.id) {
       const existing = entries.find((e) => e.id === data.id);
@@ -377,7 +447,7 @@ export default function App() {
     } else {
       targetEntry = {
         id: makeId('ent'),
-        customerId: selectedCustomerId,
+        customerId: targetCustId,
         type: data.type,
         amount: data.amount,
         date: data.date,
@@ -391,6 +461,32 @@ export default function App() {
 
     await storageService.saveEntry(targetEntry, customers, nextEntries);
     setEntries(nextEntries);
+
+    const cust = customers.find((c) => c.id === targetCustId);
+    showToast({
+      message: `${t.savedEntryToast}: ${cust?.name ?? ''} · ${formatINR(targetEntry.amount)}`,
+      receiptCustomerId: targetEntry.type === 'payment' ? targetCustId : undefined,
+      onUndo: async () => {
+        await storageService.replaceAllData(customers, previousEntries);
+        setEntries(previousEntries);
+        setToast(null);
+      },
+    });
+  };
+
+  const handleQuickSaveEntry = async (data: {
+    customerId: string;
+    type: EntryType;
+    amount: number;
+    note: string;
+  }) => {
+    await handleSaveEntry({
+      customerId: data.customerId,
+      type: data.type,
+      amount: data.amount,
+      date: getTodayISO(),
+      note: data.note,
+    });
   };
 
   const handleRequestDeleteEntry = (entry: LedgerEntry) => {
@@ -400,10 +496,20 @@ export default function App() {
       body: t.confirmDeleteEntryBody,
       destructive: true,
       onConfirm: async () => {
+        const previousEntries = entries;
         const remainingEntries = entries.filter((e) => e.id !== entry.id);
         await storageService.deleteEntry(entry.id, customers, remainingEntries);
         setEntries(remainingEntries);
         setConfirmState((prev) => ({ ...prev, open: false }));
+
+        showToast({
+          message: `${t.deletedEntryToast} · ${formatINR(entry.amount)}`,
+          onUndo: async () => {
+            await storageService.replaceAllData(customers, previousEntries);
+            setEntries(previousEntries);
+            setToast(null);
+          },
+        });
       },
     });
   };
@@ -473,39 +579,68 @@ export default function App() {
     });
   };
 
+  const openGlobalRecordModal = (prefill?: {
+    customerId?: string | null;
+    type?: EntryType;
+    amount?: number | null;
+    note?: string;
+  }) => {
+    if (customers.length === 0) {
+      setEditingCustomer(null);
+      setCustomerModalOpen(true);
+      return;
+    }
+    setEntryModalState({
+      open: true,
+      type: prefill?.type ?? 'credit',
+      customerId: prefill?.customerId ?? customers[0].id,
+      amount: prefill?.amount ?? null,
+      note: prefill?.note ?? '',
+      editingEntry: null,
+    });
+  };
+
   const navItems: Array<{ key: ActiveTab; label: string; icon: typeof Home; badge?: number }> = [
     { key: 'home', label: t.navHome, icon: Home },
-    { key: 'customers', label: t.navCustomers, icon: Users },
+    {
+      key: 'customers',
+      label: t.navCustomers,
+      icon: Users,
+      badge: customers.length > 0 ? customers.length : undefined,
+    },
     {
       key: 'overdue',
       label: t.navOverdue,
       icon: Clock,
-      badge: dashboardMetrics.overdueCustomersCount > 0 ? dashboardMetrics.overdueCustomersCount : undefined,
+      badge:
+        dashboardMetrics.overdueCustomersCount > 0
+          ? dashboardMetrics.overdueCustomersCount
+          : undefined,
     },
     { key: 'settings', label: t.navSettings, icon: Settings },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      {/* Top Bar: Curved mobile shell + clean 3-zone contract on desktop */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 rounded-b-2xl md:rounded-none shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 min-h-[50px] md:h-16 py-1.5 md:py-0 flex items-center justify-between gap-3 md:gap-8">
-          {/* Zone 1: Brand Wordmark + Caption */}
+    <div className="min-h-screen flex flex-col bg-[#F7F5F0] dark:bg-[#0B1411] text-stone-900 dark:text-stone-100">
+      {/* Sticky Header Preserving Exact Brand Logo & Caption Rules */}
+      <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#13201B]/95 backdrop-blur-md border-b border-stone-200/90 dark:border-emerald-950 rounded-b-2xl md:rounded-none shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-[52px] md:h-16 py-1.5 md:py-0 flex items-center justify-between gap-3 md:gap-8">
+          {/* Zone 1: Green Poppins Bold 700 Logo + Poppins Regular 400 Caption */}
           <button
             type="button"
             onClick={() => navigateTab('home')}
             className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 rounded-lg"
           >
-            <span className="block font-brand text-base md:text-xl font-bold leading-tight tracking-tight text-emerald-700 whitespace-nowrap">
+            <span className="block font-brand text-base md:text-xl font-bold leading-tight tracking-tight text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
               {t.appName}
             </span>
-            <span className="block font-brand text-[10px] sm:text-xs font-normal leading-tight text-slate-500 truncate">
+            <span className="block font-brand text-[10px] sm:text-xs font-normal leading-tight text-stone-500 dark:text-stone-400 truncate">
               {t.tagline}
             </span>
           </button>
 
-          {/* Zone 2: Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium" aria-label="Primary">
+          {/* Zone 2: Desktop Horizontal Links (visible md to lg, sidebar takes over on lg+) */}
+          <nav className="hidden md:flex lg:hidden items-center gap-6 text-sm font-medium" aria-label="Primary">
             {navItems.map((item) => {
               const isActive = !selectedCustomerId && activeTab === item.key;
               return (
@@ -515,8 +650,8 @@ export default function App() {
                   onClick={() => navigateTab(item.key)}
                   className={`py-1 whitespace-nowrap shrink-0 border-b-2 transition-colors ${
                     isActive
-                      ? 'border-emerald-700 text-emerald-700 font-semibold'
-                      : 'border-transparent text-slate-600 hover:text-slate-900'
+                      ? 'border-emerald-700 dark:border-emerald-400 text-emerald-700 dark:text-emerald-400 font-semibold'
+                      : 'border-transparent text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
                   }`}
                 >
                   {item.label}
@@ -526,9 +661,9 @@ export default function App() {
             })}
           </nav>
 
-          {/* Zone 3: Quick Language Switcher on mobile / Primary CTA on desktop */}
+          {/* Zone 3: Language, Theme & Primary Record CTA */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 md:hidden">
+            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-stone-100 dark:bg-[#0B1411] border border-transparent dark:border-emerald-900">
               {(['en', 'hi', 'te'] as LanguageCode[]).map((code) => (
                 <button
                   key={code}
@@ -536,8 +671,8 @@ export default function App() {
                   onClick={() => handleLanguageChange(code)}
                   className={`min-h-[30px] px-2 rounded-md text-[11px] font-semibold transition-colors ${
                     settings.language === code
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600'
+                      ? 'bg-white dark:bg-emerald-800 text-stone-900 dark:text-white shadow-xs'
+                      : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
                   }`}
                 >
                   {code === 'en' ? 'EN' : code === 'hi' ? 'हि' : 'తె'}
@@ -547,143 +682,235 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => {
-                setEditingCustomer(null);
-                setCustomerModalOpen(true);
-              }}
+              onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+              className="min-h-[38px] min-w-[38px] md:min-h-[40px] md:min-w-[40px] rounded-xl border border-stone-200 dark:border-emerald-900 bg-white dark:bg-[#0B1411] hover:bg-stone-50 dark:hover:bg-emerald-950 text-stone-700 dark:text-stone-200 flex items-center justify-center transition-colors"
+              aria-label={theme === 'dark' ? t.switchToLight : t.switchToDark}
+              title={theme === 'dark' ? t.switchToLight : t.switchToDark}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openGlobalRecordModal()}
               className="hidden md:inline-flex items-center gap-1.5 min-h-[40px] px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-xs font-semibold text-white whitespace-nowrap shrink-0 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span>{t.addCustomer}</span>
+              <span>{t.recordEntryCta}</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-24 md:py-6">
-        {storageWarning && (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900">
-            {storageWarning}
-          </div>
-        )}
+      {/* Desktop Rail + Main Workspace */}
+      <div className="flex-1 w-full max-w-7xl mx-auto flex">
+        {/* Desktop Sidebar Rail (lg+) */}
+        <aside className="hidden lg:flex lg:w-60 shrink-0 flex-col justify-between border-r border-stone-200/80 dark:border-emerald-950 px-3 py-5">
+          <div className="space-y-6">
+            <nav className="space-y-1" aria-label="Sidebar navigation">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = !selectedCustomerId && activeTab === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => navigateTab(item.key)}
+                    className={`w-full min-h-[44px] px-3.5 py-2.5 rounded-xl flex items-center justify-between gap-2.5 text-sm font-semibold transition-colors ${
+                      isActive
+                        ? 'bg-emerald-700/10 dark:bg-emerald-800/40 text-emerald-800 dark:text-emerald-300'
+                        : 'text-stone-600 dark:text-stone-300 hover:bg-stone-200/60 dark:hover:bg-emerald-950/60 hover:text-stone-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5 min-w-0">
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </span>
+                    {item.badge !== undefined && (
+                      <span
+                        className={`text-xs font-num font-bold ${
+                          item.key === 'overdue'
+                            ? 'text-amber-700 dark:text-amber-400'
+                            : 'text-stone-500 dark:text-stone-400'
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
 
-        {loading ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="h-20 rounded-2xl bg-slate-200/70 animate-pulse" />
-              ))}
+            <div className="pt-4 border-t border-stone-200/80 dark:border-emerald-950 space-y-2">
+              <button
+                type="button"
+                onClick={() => openGlobalRecordModal()}
+                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-sm font-semibold text-white inline-flex items-center justify-center gap-2 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{t.recordEntryCta}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingCustomer(null);
+                  setCustomerModalOpen(true);
+                }}
+                className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#13201B] hover:bg-stone-50 dark:hover:bg-emerald-950 text-sm font-semibold text-stone-700 dark:text-stone-200 inline-flex items-center justify-center gap-2 transition-colors"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>{t.addCustomer}</span>
+              </button>
             </div>
-            <div className="h-12 rounded-xl bg-slate-200/70 animate-pulse" />
-            <div className="h-24 rounded-2xl bg-slate-200/70 animate-pulse" />
           </div>
-        ) : selectedSummary ? (
-          <CustomerDetailView
-            summary={selectedSummary}
-            entries={selectedCustomerEntries}
-            t={t}
-            onBack={() => setSelectedCustomerId(null)}
-            onEditCustomer={() => {
-              setEditingCustomer(selectedSummary.customer);
-              setCustomerModalOpen(true);
-            }}
-            onDeleteCustomer={() => handleRequestDeleteCustomer(selectedSummary.customer)}
-            onAddEntry={(type) =>
-              setEntryModalState({ open: true, type, editingEntry: null })
-            }
-            onEditEntry={(entry) =>
-              setEntryModalState({ open: true, type: entry.type, editingEntry: entry })
-            }
-            onDeleteEntry={handleRequestDeleteEntry}
-            onSendReminder={() => handleOpenWhatsApp(selectedSummary)}
-            onExportCsv={() =>
-              exportCustomerLedgerCsv(selectedSummary, selectedCustomerEntries)
-            }
-            onPreviewImage={(url) => setPreviewImageUrl(url)}
-          />
-        ) : activeTab === 'home' ? (
-          <DashboardView
-            shopName={settings.shopName}
-            metrics={dashboardMetrics}
-            summaries={filteredSummaries}
-            searchQuery={searchQuery}
-            filter={customerFilter}
-            t={t}
-            onSearchChange={setSearchQuery}
-            onFilterChange={setCustomerFilter}
-            onAddCustomer={() => {
-              setEditingCustomer(null);
-              setCustomerModalOpen(true);
-            }}
-            onSelectCustomer={(id) => setSelectedCustomerId(id)}
-            onSendReminder={handleOpenWhatsApp}
-            onOpenCustomersTab={() => {
-              setCustomerFilter('all');
-              setSearchQuery('');
-              navigateTab('customers');
-            }}
-            onOpenTodaysCollections={() => setTodaysCollectionsOpen(true)}
-            onOpenOverdueTab={() => navigateTab('overdue')}
-            onExportAllCsv={() => exportAllCustomersCsv(allSummaries, entries)}
-          />
-        ) : activeTab === 'customers' ? (
-          <CustomerListView
-            summaries={filteredSummaries}
-            searchQuery={searchQuery}
-            filter={customerFilter}
-            t={t}
-            onSearchChange={setSearchQuery}
-            onFilterChange={setCustomerFilter}
-            onAddCustomer={() => {
-              setEditingCustomer(null);
-              setCustomerModalOpen(true);
-            }}
-            onSelectCustomer={(id) => setSelectedCustomerId(id)}
-            onSendReminder={handleOpenWhatsApp}
-            onExportAllCsv={() => exportAllCustomersCsv(allSummaries, entries)}
-          />
-        ) : activeTab === 'overdue' ? (
-          <OverdueView
-            summaries={allSummaries}
-            t={t}
-            onSelectCustomer={(id) => setSelectedCustomerId(id)}
-            onSendReminder={handleOpenWhatsApp}
-          />
-        ) : (
-          <SettingsView
-            settings={settings}
-            customers={customers}
-            entries={entries}
-            summaries={allSummaries}
-            t={t}
-            onSaveSettings={handleSaveSettings}
-            onImportConfirmed={handleImportConfirmed}
-            onLoadSampleData={handleLoadSampleData}
-            onClearAllData={handleRequestClearAll}
-          />
-        )}
-      </main>
 
-      {/* Mobile Floating Quick Add Button on Home & Customers list */}
+          <p className="px-2 text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+            {t.localStorageNoticeBody}
+          </p>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 min-w-0 px-4 sm:px-6 pt-4 pb-24 md:py-6">
+          {storageWarning && (
+            <div className="mb-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50 px-3.5 py-2.5 text-xs text-amber-900 dark:text-amber-200">
+              {storageWarning}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="space-y-4">
+              <div className="h-44 rounded-3xl bg-stone-200/80 dark:bg-emerald-950/50 animate-pulse" />
+              <div className="h-14 rounded-2xl bg-stone-200/80 dark:bg-emerald-950/50 animate-pulse" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 rounded-2xl bg-stone-200/80 dark:bg-emerald-950/50 animate-pulse" />
+                ))}
+              </div>
+            </div>
+          ) : selectedSummary ? (
+            <CustomerDetailView
+              summary={selectedSummary}
+              entries={selectedCustomerEntries}
+              settings={settings}
+              t={t}
+              onBack={() => setSelectedCustomerId(null)}
+              onEditCustomer={() => {
+                setEditingCustomer(selectedSummary.customer);
+                setCustomerModalOpen(true);
+              }}
+              onDeleteCustomer={() => handleRequestDeleteCustomer(selectedSummary.customer)}
+              onAddEntry={(type) =>
+                setEntryModalState({
+                  open: true,
+                  type,
+                  customerId: selectedSummary.customer.id,
+                  amount: null,
+                  note: '',
+                  editingEntry: null,
+                })
+              }
+              onEditEntry={(entry) =>
+                setEntryModalState({
+                  open: true,
+                  type: entry.type,
+                  customerId: entry.customerId,
+                  amount: entry.amount,
+                  note: entry.note,
+                  editingEntry: entry,
+                })
+              }
+              onDeleteEntry={handleRequestDeleteEntry}
+              onSendReminder={() => handleOpenWhatsApp(selectedSummary)}
+              onExportCsv={() =>
+                exportCustomerLedgerCsv(selectedSummary, selectedCustomerEntries)
+              }
+              onPreviewImage={(url) => setPreviewImageUrl(url)}
+            />
+          ) : activeTab === 'home' ? (
+            <DashboardView
+              shopName={settings.shopName}
+              metrics={dashboardMetrics}
+              customers={customers}
+              entries={entries}
+              summaries={filteredSummaries}
+              searchQuery={searchQuery}
+              filter={customerFilter}
+              t={t}
+              onSearchChange={setSearchQuery}
+              onFilterChange={setCustomerFilter}
+              onAddCustomer={() => {
+                setEditingCustomer(null);
+                setCustomerModalOpen(true);
+              }}
+              onOpenRecordEntry={openGlobalRecordModal}
+              onQuickSaveEntry={handleQuickSaveEntry}
+              onSelectCustomer={(id) => setSelectedCustomerId(id)}
+              onSendReminder={handleOpenWhatsApp}
+              onOpenCustomersTab={(nextFilter = 'all') => {
+                setCustomerFilter(nextFilter);
+                setSearchQuery('');
+                navigateTab('customers');
+              }}
+              onOpenTodaysCollections={() => setTodaysCollectionsOpen(true)}
+              onOpenOverdueTab={() => navigateTab('overdue')}
+              onExportAllCsv={() => exportAllCustomersCsv(allSummaries, entries)}
+            />
+          ) : activeTab === 'customers' ? (
+            <CustomerListView
+              summaries={filteredSummaries}
+              searchQuery={searchQuery}
+              filter={customerFilter}
+              t={t}
+              onSearchChange={setSearchQuery}
+              onFilterChange={setCustomerFilter}
+              onAddCustomer={() => {
+                setEditingCustomer(null);
+                setCustomerModalOpen(true);
+              }}
+              onSelectCustomer={(id) => setSelectedCustomerId(id)}
+              onSendReminder={handleOpenWhatsApp}
+              onExportAllCsv={() => exportAllCustomersCsv(allSummaries, entries)}
+            />
+          ) : activeTab === 'overdue' ? (
+            <OverdueView
+              summaries={allSummaries}
+              t={t}
+              onSelectCustomer={(id) => setSelectedCustomerId(id)}
+              onSendReminder={handleOpenWhatsApp}
+            />
+          ) : (
+            <SettingsView
+              settings={settings}
+              customers={customers}
+              entries={entries}
+              summaries={allSummaries}
+              t={t}
+              onSaveSettings={handleSaveSettings}
+              onImportConfirmed={handleImportConfirmed}
+              onLoadSampleData={handleLoadSampleData}
+              onClearAllData={handleRequestClearAll}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Mobile Floating Quick Record Entry Button */}
       {!selectedSummary && (activeTab === 'home' || activeTab === 'customers') && (
         <button
           type="button"
-          onClick={() => {
-            setEditingCustomer(null);
-            setCustomerModalOpen(true);
-          }}
-          className="md:hidden fixed bottom-18 right-4 z-30 w-12 h-12 rounded-2xl bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white shadow-lg shadow-emerald-900/25 flex items-center justify-center transition-transform"
-          aria-label={t.addCustomer}
-          title={t.addCustomer}
+          onClick={() => openGlobalRecordModal()}
+          className="md:hidden fixed bottom-18 right-4 z-30 w-12 h-12 rounded-2xl bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white shadow-lg shadow-emerald-950/30 flex items-center justify-center transition-transform"
+          aria-label={t.recordEntryCta}
+          title={t.recordEntryCta}
         >
           <Plus className="w-6 h-6" />
         </button>
       )}
 
-      {/* Mobile Bottom Tab Navigation with elevated active circular indicator */}
+      {/* Mobile Bottom Tab Navigation */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] pb-safe"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#13201B]/95 backdrop-blur-md border-t border-stone-200 dark:border-emerald-950 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] pb-safe"
         aria-label="Mobile navigation"
       >
         <div className="grid grid-cols-4 h-14 items-center">
@@ -696,18 +923,20 @@ export default function App() {
                 type="button"
                 onClick={() => navigateTab(item.key)}
                 className={`relative min-h-[44px] flex flex-col items-center justify-center px-1 transition-colors ${
-                  isActive ? 'text-emerald-700' : 'text-slate-500 hover:text-slate-800'
+                  isActive
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-100'
                 }`}
               >
                 <div
                   className={`relative flex items-center justify-center transition-transform ${
                     isActive
-                      ? 'w-9 h-9 -mt-3 rounded-full bg-emerald-700 text-white shadow-md ring-4 ring-white'
+                      ? 'w-9 h-9 -mt-3 rounded-full bg-emerald-700 text-white shadow-md ring-4 ring-white dark:ring-[#13201B]'
                       : ''
                   }`}
                 >
                   <Icon className={isActive ? 'w-4 h-4' : 'w-5 h-5'} />
-                  {item.badge !== undefined && (
+                  {item.badge !== undefined && item.key === 'overdue' && (
                     <span
                       className={`absolute min-w-[16px] h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-bold font-num flex items-center justify-center ${
                         isActive ? '-top-1 -right-1.5' : '-top-1.5 -right-2.5'
@@ -719,7 +948,7 @@ export default function App() {
                 </div>
                 <span
                   className={`text-[10px] mt-0.5 truncate max-w-full ${
-                    isActive ? 'font-bold text-emerald-700' : 'font-semibold'
+                    isActive ? 'font-bold text-emerald-700 dark:text-emerald-400' : 'font-semibold'
                   }`}
                 >
                   {item.label}
@@ -729,6 +958,52 @@ export default function App() {
           })}
         </div>
       </nav>
+
+      {/* Undo / Receipt Toast */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="no-print fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md rounded-2xl bg-stone-900 dark:bg-emerald-950 border border-stone-700 dark:border-emerald-700 text-white px-4 py-3 shadow-xl flex items-center justify-between gap-3"
+        >
+          <span className="text-xs sm:text-sm font-medium truncate">{toast.message}</span>
+          <div className="flex items-center gap-2 shrink-0">
+            {toast.receiptCustomerId && (
+              <button
+                type="button"
+                onClick={() => {
+                  const summary = allSummaries.find(
+                    (s) => s.customer.id === toast.receiptCustomerId
+                  );
+                  if (summary) handleOpenWhatsApp(summary);
+                }}
+                className="text-xs font-semibold text-emerald-300 hover:text-emerald-200 inline-flex items-center gap-1 whitespace-nowrap"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>{t.sendReceiptLink}</span>
+              </button>
+            )}
+            {toast.onUndo && (
+              <button
+                type="button"
+                onClick={() => void toast.onUndo?.()}
+                className="text-xs font-bold text-[#F7C870] hover:underline inline-flex items-center gap-1 whitespace-nowrap"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{t.undoAction}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="p-1 text-stone-400 hover:text-white"
+              aria-label={t.close}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <CustomerModal
@@ -742,13 +1017,29 @@ export default function App() {
 
       <LedgerEntryModal
         open={entryModalState.open}
-        customerName={selectedSummary?.customer.name ?? ''}
+        customerName={
+          entryModalState.editingEntry
+            ? customers.find((c) => c.id === entryModalState.editingEntry?.customerId)?.name
+            : selectedSummary?.customer.name
+        }
+        customers={
+          !selectedSummary && !entryModalState.editingEntry ? customers : undefined
+        }
+        initialCustomerId={entryModalState.customerId}
         initialType={entryModalState.type}
+        initialAmount={entryModalState.amount}
+        initialNote={entryModalState.note}
         editingEntry={entryModalState.editingEntry}
         t={t}
         onSave={handleSaveEntry}
         onClose={() =>
-          setEntryModalState((prev) => ({ ...prev, open: false, editingEntry: null }))
+          setEntryModalState((prev) => ({
+            ...prev,
+            open: false,
+            editingEntry: null,
+            amount: null,
+            note: '',
+          }))
         }
         onPreviewImage={(url) => setPreviewImageUrl(url)}
       />

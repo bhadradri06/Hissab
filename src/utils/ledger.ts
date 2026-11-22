@@ -30,6 +30,17 @@ export function isValidISODate(dateStr: string): boolean {
   return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
 }
 
+export function subtractDaysISO(isoDate: string, days: number): string {
+  if (!isValidISODate(isoDate)) return isoDate;
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - days);
+  const ry = dt.getUTCFullYear();
+  const rm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const rd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${ry}-${rm}-${rd}`;
+}
+
 export function formatIndianDate(isoDate: string | null | undefined): string {
   if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return '—';
   const [y, m, d] = isoDate.split('-');
@@ -181,28 +192,59 @@ export function computeDashboardMetrics(
   todayISO = getTodayISO()
 ): DashboardMetrics {
   let totalOutstanding = 0;
+  let customersWithBalance = 0;
   let overdueCustomersCount = 0;
+  let topDebtor: CustomerSummary | null = null;
+  let oldestDue: CustomerSummary | null = null;
 
   for (const s of summaries) {
     if (s.balance > 0) {
       totalOutstanding += s.balance;
+      customersWithBalance += 1;
+
+      if (!topDebtor || s.balance > topDebtor.balance) {
+        topDebtor = s;
+      }
+
+      const sDays = s.daysSinceLastPayment ?? 0;
+      const oldestDays = oldestDue?.daysSinceLastPayment ?? -1;
+      if (!oldestDue || sDays > oldestDays || (sDays === oldestDays && s.balance > oldestDue.balance)) {
+        oldestDue = s;
+      }
     }
     if (s.status === 'overdue') {
       overdueCustomersCount += 1;
     }
   }
 
+  const thirtyDaysAgoISO = subtractDaysISO(todayISO, 29);
+
   let todaysCollections = 0;
+  let collectedLast30Days = 0;
+  let givenLast30Days = 0;
+
   for (const e of entries) {
     if (e.type === 'payment' && e.date === todayISO) {
       todaysCollections += e.amount;
+    }
+    if (e.date >= thirtyDaysAgoISO && e.date <= todayISO) {
+      if (e.type === 'payment') {
+        collectedLast30Days += e.amount;
+      } else if (e.type === 'credit') {
+        givenLast30Days += e.amount;
+      }
     }
   }
 
   return {
     totalOutstanding: roundCurrency(totalOutstanding),
     totalCustomers: summaries.length,
+    customersWithBalance,
     todaysCollections: roundCurrency(todaysCollections),
     overdueCustomersCount,
+    collectedLast30Days: roundCurrency(collectedLast30Days),
+    givenLast30Days: roundCurrency(givenLast30Days),
+    topDebtor,
+    oldestDue,
   };
 }

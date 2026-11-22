@@ -15,6 +15,32 @@ export interface TranslationDict {
   totalCustomers: string;
   todaysCollections: string;
   overdueCustomers: string;
+  customersOweLabel: string;
+  owesMost: string;
+  collected30d: string;
+  given30d: string;
+  longestUnpaid: string;
+  // Quick Entry & Recent Activity
+  quickEntryTitle: string;
+  quickEntryPlaceholder: string;
+  quickEntrySpeak: string;
+  quickEntryListening: string;
+  quickEntryRecordBtn: string;
+  quickEntryPickCustomer: string;
+  quickEntryNeedAmount: string;
+  recordEntryCta: string;
+  selectCustomerLabel: string;
+  recentActivityTitle: string;
+  noRecentActivity: string;
+  viewAllCustomers: string;
+  // Undo & Toast
+  undoAction: string;
+  savedEntryToast: string;
+  deletedEntryToast: string;
+  sendReceiptLink: string;
+  // Theme
+  switchToDark: string;
+  switchToLight: string;
   // Search & Filters
   searchPlaceholder: string;
   filterAll: string;
@@ -60,6 +86,12 @@ export interface TranslationDict {
   noCustomersHint: string;
   noLedgerEntries: string;
   noLedgerEntriesHint: string;
+  // UPI QR & Statement
+  upiPayLinkLabel: string;
+  upiQrCodeLabel: string;
+  scanToPayUpi: string;
+  printStatement: string;
+  statementHeading: string;
   // Ledger Entries
   credit: string;
   payment: string;
@@ -87,6 +119,7 @@ export interface TranslationDict {
   errPhoneDuplicate: string;
   errAmountInvalid: string;
   errDateRequired: string;
+  errCustomerRequired: string;
   confirmDeleteCustomerTitle: string;
   confirmDeleteCustomerBody: string;
   confirmDeleteEntryTitle: string;
@@ -163,6 +196,29 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     totalCustomers: 'Total Customers',
     todaysCollections: "Today's Collections",
     overdueCustomers: 'Overdue Customers',
+    customersOweLabel: 'customers owe',
+    owesMost: 'Owes Most',
+    collected30d: 'Collected (30d)',
+    given30d: 'Credited (30d)',
+    longestUnpaid: 'Longest Unpaid',
+    quickEntryTitle: 'Quick Entry',
+    quickEntryPlaceholder: 'e.g. Sunita 500 udhaar or Ramesh 300 paid',
+    quickEntrySpeak: 'Speak entry',
+    quickEntryListening: 'Listening...',
+    quickEntryRecordBtn: 'Record',
+    quickEntryPickCustomer: 'Select matching customer:',
+    quickEntryNeedAmount: 'Type customer name & amount (e.g. "Ramesh 450 paid")',
+    recordEntryCta: 'Record Entry',
+    selectCustomerLabel: 'Customer',
+    recentActivityTitle: 'Recent Activity',
+    noRecentActivity: 'No recent transactions yet.',
+    viewAllCustomers: 'View all',
+    undoAction: 'Undo',
+    savedEntryToast: 'Entry saved',
+    deletedEntryToast: 'Entry deleted',
+    sendReceiptLink: 'WhatsApp receipt',
+    switchToDark: 'Switch to dark mode',
+    switchToLight: 'Switch to light mode',
     searchPlaceholder: 'Search customer name or phone...',
     filterAll: 'All',
     filterOutstanding: 'Outstanding',
@@ -204,6 +260,11 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     noCustomersHint: 'Add a new customer or clear your search filter.',
     noLedgerEntries: 'No ledger entries yet',
     noLedgerEntriesHint: 'Tap "+ Add Credit" when giving goods or "+ Receive Payment" when paid.',
+    upiPayLinkLabel: 'UPI Pay Link',
+    upiQrCodeLabel: 'UPI QR Code',
+    scanToPayUpi: 'Customer can scan with GPay, PhonePe, or Paytm for exact balance',
+    printStatement: 'Statement (PDF)',
+    statementHeading: 'Customer Account Statement',
     credit: 'Credit',
     payment: 'Payment',
     creditDescription: 'Goods given on credit',
@@ -228,6 +289,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     errPhoneDuplicate: 'A customer with this mobile number already exists.',
     errAmountInvalid: 'Please enter a valid amount greater than ₹0.',
     errDateRequired: 'Please select a valid date.',
+    errCustomerRequired: 'Please select a customer.',
     confirmDeleteCustomerTitle: 'Delete Customer & Ledger?',
     confirmDeleteCustomerBody: 'This will permanently delete this customer and all of their credit and payment records. Export a CSV first if you want to keep a copy.',
     confirmDeleteEntryTitle: 'Delete Ledger Entry?',
@@ -299,6 +361,29 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     totalCustomers: 'कुल ग्राहक',
     todaysCollections: 'आज की वसूली',
     overdueCustomers: 'देर से बकाया ग्राहक',
+    customersOweLabel: 'ग्राहकों पर बकाया',
+    owesMost: 'सबसे ज्यादा बकाया',
+    collected30d: 'वसूली (30 दिन)',
+    given30d: 'उधार (30 दिन)',
+    longestUnpaid: 'सबसे पुराना बकाया',
+    quickEntryTitle: 'त्वरित एंट्री',
+    quickEntryPlaceholder: 'जैसे: सुनीता 500 उधार या रमेश 300 जमा',
+    quickEntrySpeak: 'बोलकर लिखें',
+    quickEntryListening: 'सुन रहे हैं...',
+    quickEntryRecordBtn: 'दर्ज करें',
+    quickEntryPickCustomer: 'सही ग्राहक चुनें:',
+    quickEntryNeedAmount: 'ग्राहक का नाम और राशि लिखें (जैसे "रमेश 450 जमा")',
+    recordEntryCta: 'एंट्री दर्ज करें',
+    selectCustomerLabel: 'ग्राहक',
+    recentActivityTitle: 'हाल की गतिविधि',
+    noRecentActivity: 'अभी कोई हालिया लेनदेन नहीं है।',
+    viewAllCustomers: 'सभी देखें',
+    undoAction: 'वापस लें',
+    savedEntryToast: 'एंट्री सेव हो गई',
+    deletedEntryToast: 'एंट्री हटा दी गई',
+    sendReceiptLink: 'व्हाट्सएप रसीद',
+    switchToDark: 'डार्क मोड चालू करें',
+    switchToLight: 'लाइट मोड चालू करें',
     searchPlaceholder: 'ग्राहक का नाम या मोबाइल नंबर खोजें...',
     filterAll: 'सभी',
     filterOutstanding: 'बकाया',
@@ -340,6 +425,11 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     noCustomersHint: 'नया ग्राहक जोड़ें या खोज बदलें।',
     noLedgerEntries: 'अभी कोई एंट्री नहीं है',
     noLedgerEntriesHint: 'सामान उधार देने पर "+ उधार जोड़ें" या पैसे मिलने पर "+ भुगतान प्राप्त करें" दबाएं।',
+    upiPayLinkLabel: 'UPI पेमेंट लिंक',
+    upiQrCodeLabel: 'UPI QR कोड',
+    scanToPayUpi: 'सही बकाया राशि चुकाने के लिए GPay, PhonePe या Paytm से स्कैन करें',
+    printStatement: 'स्टेटमेंट (PDF)',
+    statementHeading: 'ग्राहक खाता विवरण',
     credit: 'उधार',
     payment: 'भुगतान',
     creditDescription: 'ग्राहक को उधार दिया गया सामान',
@@ -364,6 +454,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     errPhoneDuplicate: 'इस मोबाइल नंबर का ग्राहक पहले से मौजूद है।',
     errAmountInvalid: 'कृपया ₹0 से अधिक सही राशि दर्ज करें।',
     errDateRequired: 'कृपया सही तारीख चुनें।',
+    errCustomerRequired: 'कृपया एक ग्राहक चुनें।',
     confirmDeleteCustomerTitle: 'ग्राहक और खाता हटाएं?',
     confirmDeleteCustomerBody: 'इससे ग्राहक और उसका पूरा उधार-भुगतान रिकॉर्ड हमेशा के लिए हट जाएगा। जरूरत हो तो पहले CSV डाउनलोड करें।',
     confirmDeleteEntryTitle: 'एंट्री हटाएं?',
@@ -435,6 +526,29 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     totalCustomers: 'మొత్తం కస్టమర్లు',
     todaysCollections: 'నేటి వసూలు',
     overdueCustomers: 'ఆలస్యమైన బాకీలు',
+    customersOweLabel: 'కస్టమర్లు బాకీ ఉన్నారు',
+    owesMost: 'అత్యధిక బాకీ',
+    collected30d: 'వసూలు (30 రోజులు)',
+    given30d: 'బాకీ (30 రోజులు)',
+    longestUnpaid: 'ఎక్కువ రోజుల బాకీ',
+    quickEntryTitle: 'క్విక్ ఎంట్రీ',
+    quickEntryPlaceholder: 'ఉదా: సునీత 500 బాకీ లేదా రమేష్ 300 చెల్లింపు',
+    quickEntrySpeak: 'మాట్లాడి నమోదు చేయండి',
+    quickEntryListening: 'వింటున్నాము...',
+    quickEntryRecordBtn: 'నమోదు',
+    quickEntryPickCustomer: 'సరిపోయే కస్టమర్ను ఎంచుకోండి:',
+    quickEntryNeedAmount: 'కస్టమర్ పేరు మరియు మొత్తం రాయండి (ఉదా "రమేష్ 450 చెల్లింపు")',
+    recordEntryCta: 'ఎంట్రీ నమోదు',
+    selectCustomerLabel: 'కస్టమర్',
+    recentActivityTitle: 'ఇటీవలి లావాదేవీలు',
+    noRecentActivity: 'ఇంకా ఇటీవలి లావాదేవీలు లేవు.',
+    viewAllCustomers: 'అన్నీ చూడండి',
+    undoAction: 'వెనక్కి',
+    savedEntryToast: 'ఎంట్రీ సేవ్ అయింది',
+    deletedEntryToast: 'ఎంట్రీ తొలగించబడింది',
+    sendReceiptLink: 'వాట్సాప్ రసీదు',
+    switchToDark: 'డార్క్ మోడ్కు మారండి',
+    switchToLight: 'లైట్ మోడ్కు మారండి',
     searchPlaceholder: 'కస్టమర్ పేరు లేదా ఫోన్ నంబర్ వెతకండి...',
     filterAll: 'అన్నీ',
     filterOutstanding: 'బాకీ ఉన్నవి',
@@ -476,6 +590,11 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     noCustomersHint: 'కొత్త కస్టమర్ను జోడించండి లేదా శోధన మార్చండి.',
     noLedgerEntries: 'ఇంకా ఖాతా ఎంట్రీలు లేవు',
     noLedgerEntriesHint: 'సరుకు బాకీ ఇస్తే "+ బాకీ జోడించండి" లేదా డబ్బు వస్తే "+ చెల్లింపు స్వీకరించండి" నొక్కండి.',
+    upiPayLinkLabel: 'UPI పేమెంట్ లింక్',
+    upiQrCodeLabel: 'UPI QR కోడ్',
+    scanToPayUpi: 'ఖచ్చితమైన బ్యాలెన్స్ చెల్లించడానికి GPay, PhonePe లేదా Paytm తో స్కాన్ చేయండి',
+    printStatement: 'స్టేట్మెంట్ (PDF)',
+    statementHeading: 'కస్టమర్ ఖాతా స్టేట్మెంట్',
     credit: 'బాకీ',
     payment: 'చెల్లింపు',
     creditDescription: 'కస్టమర్కు బాకీగా ఇచ్చిన సరుకులు',
@@ -500,6 +619,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDict> = {
     errPhoneDuplicate: 'ఈ మొబైల్ నంబర్తో కస్టమర్ ఇప్పటికే ఉన్నారు.',
     errAmountInvalid: 'దయచేసి ₹0 కంటే ఎక్కువ సరైన మొత్తం నమోదు చేయండి.',
     errDateRequired: 'దయచేసి సరైన తేదీని ఎంచుకోండి.',
+    errCustomerRequired: 'దయచేసి ఒక కస్టమర్ను ఎంచుకోండి.',
     confirmDeleteCustomerTitle: 'కస్టమర్ & ఖాతాను తొలగించాలా?',
     confirmDeleteCustomerBody: 'ఇది కస్టమర్ మరియు వారి అన్ని బాకీ, చెల్లింపు వివరాలను శాశ్వతంగా తొలగిస్తుంది. అవసరమైతే ముందుగా CSV ఎగుమతి చేయండి.',
     confirmDeleteEntryTitle: 'ఎంట్రీని తొలగించాలా?',

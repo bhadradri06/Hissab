@@ -47,8 +47,13 @@ export interface CustomerSummary {
 export interface DashboardMetrics {
   totalOutstanding: number; // sum of positive balances only
   totalCustomers: number;
+  customersWithBalance: number;
   todaysCollections: number; // sum of payment entries dated today
   overdueCustomersCount: number;
+  collectedLast30Days: number;
+  givenLast30Days: number;
+  topDebtor: CustomerSummary | null;
+  oldestDue: CustomerSummary | null;
 }
 
 export type ActiveTab = 'home' | 'customers' | 'overdue' | 'settings';
