@@ -48,6 +48,28 @@
   .print-only {
     display: block !important;
   }
+
+  body.statement-modal-open .app-shell-content {
+    display: none !important;
+  }
+
+  body.statement-modal-open .statement-modal-backdrop {
+    position: static !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  body.statement-modal-open .statement-modal-card {
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+  }
 }
 
 .print-only {

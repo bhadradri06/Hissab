@@ -55,6 +55,7 @@ import { WhatsAppModal } from './components/WhatsAppModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ScreenshotModal } from './components/ScreenshotModal';
 import { TodaysCollectionsModal } from './components/TodaysCollectionsModal';
+import { AccountStatementModal } from './components/AccountStatementModal';
 
 function makeId(prefix: string): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -183,6 +184,7 @@ export default function App() {
 
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [todaysCollectionsOpen, setTodaysCollectionsOpen] = useState(false);
+  const [statementCustomerId, setStatementCustomerId] = useState<string | null>(null);
 
   const [toast, setToast] = useState<UndoToastState | null>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -852,6 +854,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F5F0] dark:bg-[#0B1411] text-stone-900 dark:text-stone-100">
+      <div className="app-shell-content flex-1 flex flex-col">
       {/* Sticky Header Preserving Exact Brand Logo & Caption Rules */}
       <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#13201B]/95 backdrop-blur-md border-b border-stone-200/90 dark:border-emerald-950 rounded-b-2xl md:rounded-none shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-[52px] md:h-16 py-1.5 md:py-0 flex items-center justify-between gap-3 md:gap-8">
@@ -1055,6 +1058,7 @@ export default function App() {
               onExportCsv={() =>
                 exportCustomerLedgerCsv(selectedSummary, selectedCustomerEntries)
               }
+              onOpenStatement={() => setStatementCustomerId(selectedSummary.customer.id)}
               onPreviewImage={(url) => setPreviewImageUrl(url)}
             />
           ) : activeTab === 'home' ? (
@@ -1244,6 +1248,7 @@ export default function App() {
           </div>
         </div>
       )}
+      </div>
 
       {/* Modals */}
       <CustomerModal
@@ -1278,7 +1283,7 @@ export default function App() {
         onSendReminder={handleOpenWhatsApp}
         onSelectCustomerForStatement={(id) => {
           setSelectedCustomerId(id);
-          window.setTimeout(() => window.print(), 150);
+          setStatementCustomerId(id);
         }}
         onClose={() =>
           setEntryModalState((prev) => ({
@@ -1331,6 +1336,24 @@ export default function App() {
           navigateTab('customers');
         }}
         onClose={() => setTodaysCollectionsOpen(false)}
+      />
+
+      <AccountStatementModal
+        open={Boolean(statementCustomerId)}
+        summary={
+          statementCustomerId
+            ? allSummaries.find((s) => s.customer.id === statementCustomerId) ?? null
+            : null
+        }
+        entries={
+          statementCustomerId
+            ? entries.filter((e) => e.customerId === statementCustomerId)
+            : []
+        }
+        settings={settings}
+        t={t}
+        onSaveUpiId={(upiId) => handleSaveSettings({ ...settings, upiId })}
+        onClose={() => setStatementCustomerId(null)}
       />
     </div>
   );

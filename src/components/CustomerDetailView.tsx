@@ -38,6 +38,7 @@ interface CustomerDetailViewProps {
   onSendReminder: () => void;
   onSaveUpiId: (upiId: string) => Promise<void> | void;
   onExportCsv: () => void;
+  onOpenStatement: () => void;
   onPreviewImage: (dataUrl: string) => void;
 }
 
@@ -55,6 +56,7 @@ export function CustomerDetailView({
   onSendReminder,
   onSaveUpiId,
   onExportCsv,
+  onOpenStatement,
   onPreviewImage,
 }: CustomerDetailViewProps) {
   const { customer, totalCredit, totalPayments, balance, status, lastPaymentDate, daysSinceLastPayment } =
@@ -281,7 +283,7 @@ export function CustomerDetailView({
 
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={onOpenStatement}
             className="min-h-[44px] px-4 py-2 rounded-xl bg-white/12 hover:bg-white/20 border border-white/25 text-xs sm:text-sm font-semibold text-white inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors"
           >
             <FileText className="w-4 h-4 shrink-0" />

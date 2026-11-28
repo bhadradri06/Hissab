@@ -1,23 +1,36 @@
 import type { AppSettings, Customer } from '../types';
 import { formatINR } from './ledger';
 
-export function buildUpiPaymentLink(
+export function buildShopUpiLink(
   upiId: string,
   shopName: string,
-  amount: number
+  amount?: number
 ): string | null {
   const cleanUpi = upiId.trim();
-  if (!cleanUpi || !cleanUpi.includes('@') || amount <= 0) {
+  if (!cleanUpi || !cleanUpi.includes('@')) {
     return null;
   }
   const cleanShop = shopName.trim() || 'Our Shop';
   const params = new URLSearchParams({
     pa: cleanUpi,
     pn: cleanShop,
-    am: amount.toFixed(2).replace(/\.00$/, ''),
     cu: 'INR',
   });
+  if (amount !== undefined && amount > 0) {
+    params.set('am', amount.toFixed(2).replace(/\.00$/, ''));
+  }
   return `upi://pay?${params.toString()}`;
+}
+
+export function buildUpiPaymentLink(
+  upiId: string,
+  shopName: string,
+  amount: number
+): string | null {
+  if (amount <= 0) {
+    return null;
+  }
+  return buildShopUpiLink(upiId, shopName, amount);
 }
 
 export function buildReminderMessage(
