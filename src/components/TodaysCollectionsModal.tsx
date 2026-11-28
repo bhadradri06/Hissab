@@ -1,10 +1,12 @@
 import { ChevronRight, IndianRupee, Image as ImageIcon, Users, X } from 'lucide-react';
-import type { Customer, LedgerEntry } from '../types';
+import type { Customer, LanguageCode, LedgerEntry } from '../types';
 import type { TranslationDict } from '../i18n/translations';
 import { formatIndianDate, formatINR, getTodayISO, roundCurrency } from '../utils/ledger';
+import { getLocalizedCustomerName } from '../utils/transliterate';
 
 interface TodaysCollectionsModalProps {
   open: boolean;
+  language: LanguageCode;
   customers: Customer[];
   entries: LedgerEntry[];
   t: TranslationDict;
@@ -15,6 +17,7 @@ interface TodaysCollectionsModalProps {
 
 export function TodaysCollectionsModal({
   open,
+  language,
   customers,
   entries,
   t,
@@ -122,9 +125,20 @@ export function TodaysCollectionsModal({
                     className="w-full min-h-[60px] px-3.5 py-3 flex items-center justify-between gap-3 text-left hover:bg-stone-50 dark:hover:bg-emerald-950/60 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">
                           {customer?.name ?? 'Customer'}
+                          {customer?.name && (() => {
+                            const localized = getLocalizedCustomerName(customer.name, language);
+                            return localized ? (
+                              <span
+                                dir={language === 'ur' ? 'rtl' : 'ltr'}
+                                className="ml-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400"
+                              >
+                                ({localized})
+                              </span>
+                            ) : null;
+                          })()}
                         </span>
                         {entry.screenshotDataUrl && (
                           <ImageIcon

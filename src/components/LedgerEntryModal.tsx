@@ -22,6 +22,7 @@ import {
   roundCurrency,
 } from '../utils/ledger';
 import { processScreenshotFile } from '../utils/image';
+import { formatBilingualCustomerName } from '../utils/transliterate';
 import { buildUpiPaymentLink } from '../utils/whatsapp';
 
 interface LedgerEntryModalProps {
@@ -172,11 +173,14 @@ export function LedgerEntryModal({
 
   if (!open) return null;
 
-  const activeCustomerLabel =
+  const rawCustomerLabel =
     customerName ||
     activeSummary?.customer.name ||
     customers?.find((c) => c.id === selectedCustomerId)?.name ||
     '';
+  const activeCustomerLabel = rawCustomerLabel
+    ? formatBilingualCustomerName(rawCustomerLabel, settings.language)
+    : '';
 
   const runOcr = async (dataUrl: string) => {
     setOcrState({
@@ -365,36 +369,38 @@ export function LedgerEntryModal({
               >
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} (+91 {c.phone})
+                    {formatBilingualCustomerName(c.name, settings.language)} (+91 {c.phone})
                   </option>
                 ))}
               </select>
             </div>
           )}
 
-          {/* Segmented Type Selector */}
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-100 dark:bg-[#0B1411] rounded-xl">
+          {/* Entry Type Toggle: You gave (credit) / You got (payment) */}
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
               onClick={() => setEntryType('credit')}
-              className={`min-h-[42px] rounded-lg text-sm font-semibold transition-colors ${
+              aria-pressed={entryType === 'credit'}
+              className={`min-h-[46px] px-3 py-2 rounded-xl border-[1.5px] text-sm font-semibold transition-colors ${
                 entryType === 'credit'
-                  ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
+                  ? 'bg-[#FDF3F1] dark:bg-red-950/35 border-[#A82819] dark:border-red-500/80 text-[#8F2316] dark:text-red-300'
+                  : 'bg-white dark:bg-[#0B1411] border-stone-300 dark:border-emerald-900 text-[#8F2316]/80 dark:text-red-300/80 hover:bg-[#FDF3F1]/60 dark:hover:bg-red-950/20'
               }`}
             >
-              {t.credit}
+              {t.youGaveCredit}
             </button>
             <button
               type="button"
               onClick={() => setEntryType('payment')}
-              className={`min-h-[42px] rounded-lg text-sm font-semibold transition-colors ${
+              aria-pressed={entryType === 'payment'}
+              className={`min-h-[46px] px-3 py-2 rounded-xl border-[1.5px] text-sm font-semibold transition-colors ${
                 entryType === 'payment'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
+                  ? 'bg-[#EFF6FA] dark:bg-emerald-950/50 border-[#2C5A78] dark:border-emerald-500 text-[#234861] dark:text-emerald-300'
+                  : 'bg-white dark:bg-[#0B1411] border-stone-300 dark:border-emerald-900 text-[#36536E] dark:text-emerald-300/80 hover:bg-[#EFF6FA]/70 dark:hover:bg-emerald-950/25'
               }`}
             >
-              {t.payment}
+              {t.youGotPayment}
             </button>
           </div>
 

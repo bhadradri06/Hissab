@@ -1,11 +1,12 @@
 import { Download, Search, UserPlus, Users } from 'lucide-react';
-import type { CustomerSummary } from '../types';
+import type { CustomerSummary, LanguageCode } from '../types';
 import type { TranslationDict } from '../i18n/translations';
 import type { CustomerFilter } from './DashboardView';
 import { CustomerCard } from './CustomerCard';
 
 interface CustomerListViewProps {
   summaries: CustomerSummary[];
+  language: LanguageCode;
   searchQuery: string;
   filter: CustomerFilter;
   t: TranslationDict;
@@ -19,6 +20,7 @@ interface CustomerListViewProps {
 
 export function CustomerListView({
   summaries,
+  language,
   searchQuery,
   filter,
   t,
@@ -107,6 +109,7 @@ export function CustomerListView({
             <CustomerCard
               key={summary.customer.id}
               summary={summary}
+              language={language}
               t={t}
               onSelect={onSelectCustomer}
               onSendReminder={onSendReminder}

@@ -47,6 +47,17 @@ export function formatIndianDate(isoDate: string | null | undefined): string {
   return `${d}-${m}-${y}`;
 }
 
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+
+export function formatShortMonthDate(isoDate: string | null | undefined): string {
+  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return '—';
+  const [y, m, d] = isoDate.split('-');
+  const monthIdx = Number(m) - 1;
+  const dayNum = Number(d);
+  const monthLabel = SHORT_MONTHS[monthIdx] ?? m;
+  return `${dayNum} ${monthLabel} ${y}`;
+}
+
 export function formatINR(amount: number): string {
   const safe = Number.isFinite(amount) ? amount : 0;
   const abs = Math.abs(safe);
@@ -94,6 +105,52 @@ export function sortEntriesNewestFirst(entries: LedgerEntry[]): LedgerEntry[] {
     if (b.date !== a.date) return b.date.localeCompare(a.date);
     return b.createdAt.localeCompare(a.createdAt);
   });
+}
+
+export interface TimelineEntryPoint {
+  entry: LedgerEntry;
+  balanceAfter: number;
+}
+
+export interface CustomerBalanceTimeline {
+  chronological: TimelineEntryPoint[];
+  newestFirst: TimelineEntryPoint[];
+  highestBalance: number;
+  lowestBalance: number;
+  finalBalance: number;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export function computeCustomerTimeline(entries: LedgerEntry[]): CustomerBalanceTimeline {
+  const asc = [...entries].sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return a.createdAt.localeCompare(b.createdAt);
+  });
+
+  let running = 0;
+  let highest = -Infinity;
+  let lowest = Infinity;
+
+  const chronological: TimelineEntryPoint[] = asc.map((entry) => {
+    running = roundCurrency(
+      running + (entry.type === 'credit' ? entry.amount : -entry.amount)
+    );
+    if (running > highest) highest = running;
+    if (running < lowest) lowest = running;
+    return { entry, balanceAfter: running };
+  });
+
+  const hasEntries = chronological.length > 0;
+  return {
+    chronological,
+    newestFirst: [...chronological].reverse(),
+    highestBalance: hasEntries ? highest : 0,
+    lowestBalance: hasEntries ? lowest : 0,
+    finalBalance: hasEntries ? chronological[chronological.length - 1].balanceAfter : 0,
+    startDate: hasEntries ? chronological[0].entry.date : null,
+    endDate: hasEntries ? chronological[chronological.length - 1].entry.date : null,
+  };
 }
 
 export function computeCustomerSummary(

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ChevronDown,
   Clock,
   Home,
   MessageCircle,
@@ -22,7 +23,15 @@ import type {
   LedgerEntry,
 } from './types';
 import { DEFAULT_SETTINGS, storageService } from './db/storage';
-import { TRANSLATIONS } from './i18n/translations';
+import {
+  createShopId,
+  loadOrInitShopRegistry,
+  materializeParsedShop,
+  persistShopRegistry,
+  syncActiveShopSnapshot,
+  type ShopRegistry,
+} from './db/shops';
+import { SUPPORTED_LANGUAGES, TRANSLATIONS } from './i18n/translations';
 import {
   computeAllSummaries,
   computeDashboardMetrics,
@@ -129,6 +138,10 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [shopRegistry, setShopRegistry] = useState<ShopRegistry>({
+    activeId: 'shop_primary',
+    shops: [],
+  });
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try {
@@ -270,6 +283,13 @@ export default function App() {
         }
 
         if (!mounted) return;
+        const initialRegistry = loadOrInitShopRegistry({
+          name: finalSettings.shopName,
+          upiId: finalSettings.upiId,
+          customers: finalCustomers,
+          entries: finalEntries,
+        });
+        setShopRegistry(initialRegistry);
         setCustomers(finalCustomers);
         setEntries(finalEntries);
         setSettings(finalSettings);
@@ -287,6 +307,22 @@ export default function App() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    setShopRegistry((prev) =>
+      syncActiveShopSnapshot(prev, {
+        name: settings.shopName,
+        upiId: settings.upiId,
+        customers,
+        entries,
+      })
+    );
+  }, [loading, customers, entries, settings.shopName, settings.upiId]);
+
+  useEffect(() => {
+    document.documentElement.lang = settings.language;
+  }, [settings.language]);
 
   const t = TRANSLATIONS[settings.language];
 
@@ -551,6 +587,200 @@ export default function App() {
     }
   };
 
+  const applyReplaceCurrentShop = async (
+    result: ImportValidationResult,
+    onDone?: () => void
+  ) => {
+    const { customers: nextCustomers, entries: nextEntries } = materializeParsedShop(
+      result,
+      makeId
+    );
+    const nextSettings: AppSettings = {
+      ...settings,
+      shopName: result.shopName || settings.shopName,
+      upiId: result.upiId !== undefined ? result.upiId : settings.upiId,
+    };
+
+    await storageService.replaceAllData(nextCustomers, nextEntries);
+    await storageService.saveSettings(nextSettings);
+    setCustomers(nextCustomers);
+    setEntries(nextEntries);
+    setSettings(nextSettings);
+    setSelectedCustomerId(null);
+    onDone?.();
+    showToast({ message: `${t.shopReplacedToast}: ${nextSettings.shopName}` });
+  };
+
+  const handleRequestReplaceShop = (
+    result: ImportValidationResult,
+    onDone?: () => void
+  ) => {
+    if (customers.length === 0 && entries.length === 0) {
+      void applyReplaceCurrentShop(result, onDone);
+      return;
+    }
+    setConfirmState({
+      open: true,
+      title: t.confirmLoadShopTitle,
+      body: t.confirmLoadShopBody,
+      destructive: true,
+      onConfirm: async () => {
+        await applyReplaceCurrentShop(result, onDone);
+        setConfirmState((prev) => ({ ...prev, open: false }));
+      },
+    });
+  };
+
+  const handleImportAsNewShop = async (result: ImportValidationResult) => {
+    const syncedPrev = syncActiveShopSnapshot(shopRegistry, {
+      name: settings.shopName,
+      upiId: settings.upiId,
+      customers,
+      entries,
+    });
+
+    const { customers: nextCustomers, entries: nextEntries } = materializeParsedShop(
+      result,
+      makeId
+    );
+    const newShopId = createShopId('shop');
+    const newShopName =
+      result.shopName || `Shop ${syncedPrev.shops.length + 1}`;
+    const newShopUpi = result.upiId || '';
+    const nextSettings: AppSettings = {
+      ...settings,
+      shopName: newShopName,
+      upiId: newShopUpi,
+    };
+
+    const nextRegistry: ShopRegistry = {
+      activeId: newShopId,
+      shops: [
+        ...syncedPrev.shops,
+        {
+          id: newShopId,
+          name: newShopName,
+          upiId: newShopUpi,
+          customers: nextCustomers,
+          entries: nextEntries,
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    };
+    persistShopRegistry(nextRegistry);
+    await storageService.replaceAllData(nextCustomers, nextEntries);
+    await storageService.saveSettings(nextSettings);
+
+    setShopRegistry(nextRegistry);
+    setCustomers(nextCustomers);
+    setEntries(nextEntries);
+    setSettings(nextSettings);
+    setSelectedCustomerId(null);
+    setSearchQuery('');
+    setCustomerFilter('all');
+    showToast({ message: `${t.shopImportedNewToast}: ${newShopName}` });
+  };
+
+  const handleSwitchShop = async (shopId: string) => {
+    if (shopId === shopRegistry.activeId) return;
+    const syncedPrev = syncActiveShopSnapshot(shopRegistry, {
+      name: settings.shopName,
+      upiId: settings.upiId,
+      customers,
+      entries,
+    });
+    const target = syncedPrev.shops.find((s) => s.id === shopId);
+    if (!target) return;
+
+    const nextSettings: AppSettings = {
+      ...settings,
+      shopName: target.name,
+      upiId: target.upiId || '',
+    };
+    const nextRegistry: ShopRegistry = {
+      ...syncedPrev,
+      activeId: target.id,
+    };
+    persistShopRegistry(nextRegistry);
+    await storageService.replaceAllData(target.customers, target.entries);
+    await storageService.saveSettings(nextSettings);
+
+    setShopRegistry(nextRegistry);
+    setCustomers(target.customers);
+    setEntries(target.entries);
+    setSettings(nextSettings);
+    setSelectedCustomerId(null);
+    setSearchQuery('');
+    setCustomerFilter('all');
+    showToast({ message: `${t.shopSwitchedToast}: ${target.name}` });
+  };
+
+  const handleAddNewShop = async (newShopName: string) => {
+    const syncedPrev = syncActiveShopSnapshot(shopRegistry, {
+      name: settings.shopName,
+      upiId: settings.upiId,
+      customers,
+      entries,
+    });
+    const newId = createShopId('shop');
+    const cleanName = newShopName.trim();
+    if (!cleanName) return;
+
+    const nextSettings: AppSettings = {
+      ...settings,
+      shopName: cleanName,
+      upiId: '',
+    };
+    const nextRegistry: ShopRegistry = {
+      activeId: newId,
+      shops: [
+        ...syncedPrev.shops,
+        {
+          id: newId,
+          name: cleanName,
+          upiId: '',
+          customers: [],
+          entries: [],
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    };
+    persistShopRegistry(nextRegistry);
+    await storageService.replaceAllData([], []);
+    await storageService.saveSettings(nextSettings);
+
+    setShopRegistry(nextRegistry);
+    setCustomers([]);
+    setEntries([]);
+    setSettings(nextSettings);
+    setSelectedCustomerId(null);
+    setSearchQuery('');
+    setCustomerFilter('all');
+    showToast({ message: `${t.shopAddedToast}: ${cleanName}` });
+  };
+
+  const handleRemoveShop = (shopId: string) => {
+    const target = shopRegistry.shops.find((s) => s.id === shopId);
+    if (!target || shopId === shopRegistry.activeId) return;
+    setConfirmState({
+      open: true,
+      title: t.confirmRemoveShopTitle,
+      body: `${target.name} — ${t.confirmRemoveShopBody}`,
+      destructive: true,
+      onConfirm: () => {
+        setShopRegistry((prev) => {
+          const nextRegistry: ShopRegistry = {
+            ...prev,
+            shops: prev.shops.filter((s) => s.id !== shopId),
+          };
+          persistShopRegistry(nextRegistry);
+          return nextRegistry;
+        });
+        setConfirmState((prev) => ({ ...prev, open: false }));
+      },
+    });
+  };
+
   const handleRequestClearAll = () => {
     setConfirmState({
       open: true,
@@ -661,23 +891,22 @@ export default function App() {
             })}
           </nav>
 
-          {/* Zone 3: Language, Theme & Primary Record CTA */}
+          {/* Zone 3: Language Dropdown, Theme & Primary Record CTA */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-stone-100 dark:bg-[#0B1411] border border-transparent dark:border-emerald-900">
-              {(['en', 'hi', 'te'] as LanguageCode[]).map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => handleLanguageChange(code)}
-                  className={`min-h-[30px] px-2 rounded-md text-[11px] font-semibold transition-colors ${
-                    settings.language === code
-                      ? 'bg-white dark:bg-emerald-800 text-stone-900 dark:text-white shadow-xs'
-                      : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
-                  }`}
-                >
-                  {code === 'en' ? 'EN' : code === 'hi' ? 'हि' : 'తె'}
-                </button>
-              ))}
+            <div className="relative">
+              <select
+                value={settings.language}
+                onChange={(e) => handleLanguageChange(e.target.value as LanguageCode)}
+                aria-label={t.languageLabel}
+                className="min-h-[38px] md:min-h-[40px] max-w-[110px] sm:max-w-[136px] appearance-none rounded-xl border border-stone-200 dark:border-emerald-900 bg-white dark:bg-[#0B1411] hover:bg-stone-50 dark:hover:bg-emerald-950 pl-2.5 pr-7 py-1.5 text-xs font-semibold text-stone-800 dark:text-stone-100 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 cursor-pointer"
+              >
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400 pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" />
             </div>
 
             <button
@@ -831,6 +1060,7 @@ export default function App() {
           ) : activeTab === 'home' ? (
             <DashboardView
               shopName={settings.shopName}
+              language={settings.language}
               metrics={dashboardMetrics}
               customers={customers}
               entries={entries}
@@ -860,6 +1090,7 @@ export default function App() {
           ) : activeTab === 'customers' ? (
             <CustomerListView
               summaries={filteredSummaries}
+              language={settings.language}
               searchQuery={searchQuery}
               filter={customerFilter}
               t={t}
@@ -876,6 +1107,7 @@ export default function App() {
           ) : activeTab === 'overdue' ? (
             <OverdueView
               summaries={allSummaries}
+              language={settings.language}
               t={t}
               onSelectCustomer={(id) => setSelectedCustomerId(id)}
               onSendReminder={handleOpenWhatsApp}
@@ -886,9 +1118,16 @@ export default function App() {
               customers={customers}
               entries={entries}
               summaries={allSummaries}
+              shops={shopRegistry.shops}
+              activeShopId={shopRegistry.activeId}
               t={t}
               onSaveSettings={handleSaveSettings}
               onImportConfirmed={handleImportConfirmed}
+              onRequestReplaceShop={handleRequestReplaceShop}
+              onImportAsNewShop={handleImportAsNewShop}
+              onSwitchShop={handleSwitchShop}
+              onAddNewShop={handleAddNewShop}
+              onRemoveShop={handleRemoveShop}
               onLoadSampleData={handleLoadSampleData}
               onClearAllData={handleRequestClearAll}
             />
@@ -1081,6 +1320,7 @@ export default function App() {
 
       <TodaysCollectionsModal
         open={todaysCollectionsOpen}
+        language={settings.language}
         customers={customers}
         entries={entries}
         t={t}

@@ -11,10 +11,18 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import type { Customer, CustomerSummary, DashboardMetrics, EntryType, LedgerEntry } from '../types';
+import type {
+  Customer,
+  CustomerSummary,
+  DashboardMetrics,
+  EntryType,
+  LanguageCode,
+  LedgerEntry,
+} from '../types';
 import type { TranslationDict } from '../i18n/translations';
 import { formatIndianDate, formatINR, getTodayISO, sortEntriesNewestFirst } from '../utils/ledger';
 import { parseQuickEntry } from '../utils/quickEntry';
+import { formatBilingualCustomerName, getLocalizedCustomerName } from '../utils/transliterate';
 import { CustomerCard } from './CustomerCard';
 
 export type CustomerFilter = 'all' | 'outstanding' | 'settled' | 'overdue';
@@ -44,6 +52,7 @@ interface SpeechRecognitionInstanceLike {
 
 interface DashboardViewProps {
   shopName: string;
+  language: LanguageCode;
   metrics: DashboardMetrics;
   customers: Customer[];
   entries: LedgerEntry[];
@@ -76,6 +85,7 @@ interface DashboardViewProps {
 
 export function DashboardView({
   shopName,
+  language,
   metrics,
   customers,
   entries,
@@ -341,7 +351,7 @@ export function DashboardView({
             {metrics.topDebtor ? (
               <div className="mt-1 flex items-baseline justify-between gap-1.5 min-w-0">
                 <span className="text-sm font-semibold text-white truncate">
-                  {metrics.topDebtor.customer.name}
+                  {formatBilingualCustomerName(metrics.topDebtor.customer.name, language)}
                 </span>
                 <span className="text-sm font-bold font-num text-[#F7C870] shrink-0">
                   {formatINR(metrics.topDebtor.balance)}
@@ -392,7 +402,7 @@ export function DashboardView({
               >
                 {t.longestUnpaid}:{' '}
                 <strong className="font-semibold text-white">
-                  {metrics.oldestDue.customer.name}
+                  {formatBilingualCustomerName(metrics.oldestDue.customer.name, language)}
                 </strong>{' '}
                 <span className="font-num text-[#F7C870]">
                   ({metrics.oldestDue.daysSinceLastPayment}
@@ -480,7 +490,7 @@ export function DashboardView({
                   onClick={() => void handleSelectQuickCandidate(cand)}
                   className="min-h-[38px] px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 text-xs font-semibold text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900"
                 >
-                  {cand.name} (+91 {cand.phone.slice(-4)})
+                  {formatBilingualCustomerName(cand.name, language)} (+91 {cand.phone.slice(-4)})
                 </button>
               ))}
             </div>
@@ -530,6 +540,7 @@ export function DashboardView({
                   <CustomerCard
                     key={summary.customer.id}
                     summary={summary}
+                    language={language}
                     t={t}
                     onSelect={onSelectCustomer}
                     onSendReminder={onSendReminder}
@@ -576,6 +587,17 @@ export function DashboardView({
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">
                           {cust?.name ?? 'Customer'}
+                          {cust?.name && (() => {
+                            const localized = getLocalizedCustomerName(cust.name, language);
+                            return localized ? (
+                              <span
+                                dir={language === 'ur' ? 'rtl' : 'ltr'}
+                                className="ml-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400"
+                              >
+                                ({localized})
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                         <div className="text-xs text-stone-500 dark:text-stone-400 truncate font-num">
                           {formatIndianDate(entry.date)}

@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { CheckCircle2, Clock, MessageCircle } from 'lucide-react';
-import type { CustomerSummary } from '../types';
+import type { CustomerSummary, LanguageCode } from '../types';
 import type { TranslationDict } from '../i18n/translations';
 import { formatIndianDate, formatINR, getTodayISO } from '../utils/ledger';
+import { getLocalizedCustomerName } from '../utils/transliterate';
 
 type OverdueDaysFilter = 0 | 7 | 15 | 30 | 60;
 
 interface OverdueViewProps {
   summaries: CustomerSummary[];
+  language: LanguageCode;
   t: TranslationDict;
   onSelectCustomer: (customerId: string) => void;
   onSendReminder: (summary: CustomerSummary) => void;
@@ -15,6 +17,7 @@ interface OverdueViewProps {
 
 export function OverdueView({
   summaries,
+  language,
   t,
   onSelectCustomer,
   onSendReminder,
@@ -99,9 +102,22 @@ export function OverdueView({
                   className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 rounded-lg"
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-base font-semibold text-stone-900 dark:text-stone-100 truncate">
-                      {s.customer.name}
-                    </span>
+                    <div className="min-w-0 flex flex-wrap items-baseline gap-x-1.5">
+                      <span className="text-base font-semibold text-stone-900 dark:text-stone-100 truncate">
+                        {s.customer.name}
+                      </span>
+                      {(() => {
+                        const localized = getLocalizedCustomerName(s.customer.name, language);
+                        return localized ? (
+                          <span
+                            dir={language === 'ur' ? 'rtl' : 'ltr'}
+                            className="text-xs font-medium text-emerald-700 dark:text-emerald-400 truncate"
+                          >
+                            ({localized})
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
                     <span className="text-lg font-bold font-num text-red-600 dark:text-red-400 shrink-0">
                       {formatINR(s.balance)}
                     </span>

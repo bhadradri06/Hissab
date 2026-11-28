@@ -9,13 +9,19 @@ import {
   Link2,
   MessageCircle,
   Phone,
-  Plus,
   QrCode,
   Trash2,
 } from 'lucide-react';
 import type { AppSettings, CustomerSummary, EntryType, LedgerEntry } from '../types';
 import type { TranslationDict } from '../i18n/translations';
-import { formatIndianDate, formatINR, getTodayISO, sortEntriesNewestFirst } from '../utils/ledger';
+import {
+  computeCustomerTimeline,
+  formatIndianDate,
+  formatINR,
+  formatShortMonthDate,
+  getTodayISO,
+} from '../utils/ledger';
+import { getLocalizedCustomerName } from '../utils/transliterate';
 import { buildUpiPaymentLink } from '../utils/whatsapp';
 
 interface CustomerDetailViewProps {
@@ -53,7 +59,7 @@ export function CustomerDetailView({
 }: CustomerDetailViewProps) {
   const { customer, totalCredit, totalPayments, balance, status, lastPaymentDate, daysSinceLastPayment } =
     summary;
-  const sortedEntries = sortEntriesNewestFirst(entries);
+  const timeline = computeCustomerTimeline(entries);
 
   const [showQr, setShowQr] = useState(false);
   const [showUpiPrompt, setShowUpiPrompt] = useState(false);
@@ -178,6 +184,17 @@ export function CustomerDetailView({
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-white break-words">
               {customer.name}
+              {(() => {
+                const localized = getLocalizedCustomerName(customer.name, settings.language);
+                return localized ? (
+                  <span
+                    dir={settings.language === 'ur' ? 'rtl' : 'ltr'}
+                    className="ml-2 text-base sm:text-lg font-medium text-emerald-200/95"
+                  >
+                    ({localized})
+                  </span>
+                ) : null;
+              })()}
             </h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-emerald-100/90">
               <span className="inline-flex items-center gap-1.5 font-num">
@@ -357,42 +374,161 @@ export function CustomerDetailView({
         </div>
       )}
 
-      {/* Primary Add Credit & Receive Payment Buttons */}
+      {/* Primary You gave (credit) & You got (payment) Buttons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 no-print">
         <button
           type="button"
           onClick={() => onAddEntry('credit')}
-          className="min-h-[48px] px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-sm font-semibold text-white inline-flex items-center justify-center gap-2 transition-colors shadow-xs"
+          className="min-h-[48px] px-4 py-2.5 rounded-xl border-[1.5px] border-[#A82819] dark:border-red-500/80 bg-[#FDF3F1] dark:bg-red-950/35 hover:bg-[#FAE8E4] dark:hover:bg-red-950/55 text-sm font-semibold text-[#8F2316] dark:text-red-300 inline-flex items-center justify-center transition-colors"
         >
-          <Plus className="w-4 h-4" />
-          <span>{t.addCredit.replace(/^\+\s*/, '')}</span>
+          {t.youGaveCredit}
         </button>
 
         <button
           type="button"
           onClick={() => onAddEntry('payment')}
-          className="min-h-[48px] px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-sm font-semibold text-white inline-flex items-center justify-center gap-2 transition-colors shadow-xs"
+          className="min-h-[48px] px-4 py-2.5 rounded-xl border-[1.5px] border-stone-300 dark:border-emerald-800 bg-white dark:bg-[#13201B] hover:border-[#2C5A78] dark:hover:border-emerald-500 hover:bg-[#EFF6FA] dark:hover:bg-emerald-950/45 text-sm font-semibold text-[#36536E] dark:text-emerald-300 inline-flex items-center justify-center transition-colors"
         >
-          <Plus className="w-4 h-4" />
-          <span>{t.receivePayment.replace(/^\+\s*/, '')}</span>
+          {t.youGotPayment}
         </button>
       </div>
+
+      {/* Balance Over Time Step-Line Chart */}
+      {timeline.chronological.length > 0 && (() => {
+        const points = [0, ...timeline.chronological.map((p) => p.balanceAfter)];
+        const count = timeline.chronological.length;
+        const yMin = Math.min(0, timeline.lowestBalance);
+        const yMax = Math.max(0, timeline.highestBalance);
+        const span = yMax - yMin;
+        const yPct = (val: number) => (span === 0 ? 50 : 90 - ((val - yMin) / span) * 80);
+
+        const highY = yPct(timeline.highestBalance);
+        const lowY = yPct(timeline.lowestBalance);
+        const showSeparateLowLine =
+          timeline.highestBalance !== timeline.lowestBalance && Math.abs(lowY - highY) >= 18;
+
+        const pathParts: string[] = [`M 0 ${yPct(points[0]).toFixed(2)}`];
+        for (let i = 1; i < points.length; i += 1) {
+          const x = ((i / count) * 100).toFixed(2);
+          const prevY = yPct(points[i - 1]).toFixed(2);
+          const currY = yPct(points[i]).toFixed(2);
+          pathParts.push(`L ${x} ${prevY} L ${x} ${currY}`);
+        }
+        const stepPath = pathParts.join(' ');
+        const finalY = yPct(timeline.finalBalance);
+
+        const summaryCaption = t.balanceSummaryTemplate
+          .replace('{start}', formatINR(0))
+          .replace('{end}', formatINR(timeline.finalBalance))
+          .replace('{count}', String(count))
+          .replace('{entries}', count === 1 ? t.entrySingle : t.entriesPlural)
+          .replace('{high}', formatINR(timeline.highestBalance))
+          .replace('{low}', formatINR(timeline.lowestBalance));
+
+        const startLabel = formatShortMonthDate(timeline.startDate);
+        const endLabel = formatShortMonthDate(timeline.endDate);
+
+        return (
+          <section className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-4 sm:p-5 space-y-3">
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+              {t.balanceOverTimeTitle}
+            </h2>
+
+            <div className="flex items-stretch gap-2.5 pr-1.5">
+              {/* Left Y-axis currency labels */}
+              <div className="relative shrink-0 min-w-[56px] sm:min-w-[68px] h-28 sm:h-32 text-right">
+                <span
+                  className="absolute right-0 -translate-y-1/2 text-xs font-semibold font-num text-stone-700 dark:text-stone-300"
+                  style={{ top: `${highY}%` }}
+                >
+                  {formatINR(timeline.highestBalance)}
+                </span>
+                {showSeparateLowLine && (
+                  <span
+                    className="absolute right-0 -translate-y-1/2 text-xs font-semibold font-num text-stone-700 dark:text-stone-300"
+                    style={{ top: `${lowY}%` }}
+                  >
+                    {formatINR(timeline.lowestBalance)}
+                  </span>
+                )}
+              </div>
+
+              {/* Plot canvas */}
+              <div className="flex-1 min-w-0">
+                <div className="relative h-28 sm:h-32">
+                  {/* Dashed reference grid lines */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-x-0 border-t border-dashed border-stone-300 dark:border-emerald-800/80"
+                    style={{ top: `${highY}%` }}
+                  />
+                  {showSeparateLowLine && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-0 border-t border-dashed border-stone-300 dark:border-emerald-800/80"
+                      style={{ top: `${lowY}%` }}
+                    />
+                  )}
+
+                  {/* Step-line SVG */}
+                  <svg
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    className="relative z-10 w-full h-full overflow-visible block"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d={stepPath}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      vectorEffect="non-scaling-stroke"
+                      className="text-[#C77A1C] dark:text-[#F2B544]"
+                    />
+                  </svg>
+
+                  {/* Final point marker */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute right-0 z-20 w-2.5 h-2.5 rounded-full bg-[#C77A1C] dark:bg-[#F2B544] translate-x-1/2 -translate-y-1/2"
+                    style={{ top: `${finalY}%` }}
+                  />
+                </div>
+
+                {/* X-axis start & end dates */}
+                <div className="mt-1.5 flex items-center justify-between text-xs font-num text-stone-500 dark:text-stone-400">
+                  <span>{startLabel}</span>
+                  {timeline.endDate !== timeline.startDate && <span>{endLabel}</span>}
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 font-num">
+              {summaryCaption}
+            </p>
+          </section>
+        );
+      })()}
 
       {/* Ledger History (Newest First) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t.ledgerHistory}</h2>
-          <span className="text-xs font-num text-stone-500 dark:text-stone-400">{sortedEntries.length}</span>
+          <span className="text-xs font-num text-stone-500 dark:text-stone-400">
+            {timeline.newestFirst.length}
+          </span>
         </div>
 
-        {sortedEntries.length === 0 ? (
+        {timeline.newestFirst.length === 0 ? (
           <div className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 p-7 text-center">
             <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{t.noLedgerEntries}</h3>
             <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t.noLedgerEntriesHint}</p>
           </div>
         ) : (
           <div className="bg-white dark:bg-[#13201B] rounded-2xl border border-stone-200/90 dark:border-emerald-950 divide-y divide-stone-100 dark:divide-emerald-950 overflow-hidden">
-            {sortedEntries.map((entry) => {
+            {timeline.newestFirst.map(({ entry, balanceAfter }) => {
               const isCredit = entry.type === 'credit';
               return (
                 <div key={entry.id} className="p-3.5 sm:p-4 flex items-start gap-3">
@@ -414,14 +550,21 @@ export function CustomerDetailView({
                       </span>
                     </div>
 
+                    {entry.note && (
+                      <div className="mt-0.5 text-sm text-stone-800 dark:text-stone-200 break-words">
+                        {entry.note}
+                      </div>
+                    )}
+
                     <div className="mt-1 text-xs text-stone-500 dark:text-stone-400 font-num">
-                      {formatIndianDate(entry.date)}
-                      {entry.note && (
-                        <>
-                          <span aria-hidden="true"> · </span>
-                          <span className="font-sans text-stone-700 dark:text-stone-300">{entry.note}</span>
-                        </>
-                      )}
+                      <span>{formatIndianDate(entry.date)}</span>
+                      <span aria-hidden="true"> · </span>
+                      <span>
+                        {t.balanceAfterLabel}{' '}
+                        <strong className="font-semibold text-stone-700 dark:text-stone-200">
+                          {formatINR(balanceAfter)}
+                        </strong>
+                      </span>
                     </div>
 
                     {entry.screenshotDataUrl && (

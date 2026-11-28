@@ -1,5 +1,11 @@
 import type { Customer, EntryType, LedgerEntry } from '../types';
-import { isValidIndianPhone, isValidISODate, normalizeIndianPhone, roundCurrency } from './ledger';
+import {
+  getTodayISO,
+  isValidIndianPhone,
+  isValidISODate,
+  normalizeIndianPhone,
+  roundCurrency,
+} from './ledger';
 
 export interface ParsedImportEntry {
   type: EntryType;
@@ -22,7 +28,9 @@ export interface ParsedImportCustomer {
 
 export interface ImportValidationResult {
   valid: boolean;
+  sourceFormat?: 'json' | 'csv';
   shopName?: string;
+  upiId?: string;
   customers: ParsedImportCustomer[];
   totalValidEntries: number;
   duplicateCount: number;
@@ -32,10 +40,11 @@ export interface ImportValidationResult {
 
 function normalizeDateInput(raw: string): string | null {
   const trimmed = raw.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed) && isValidISODate(trimmed)) {
-    return trimmed;
+  if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(trimmed)) {
+    const iso = trimmed.replace(/\//g, '-');
+    if (isValidISODate(iso)) return iso;
   }
-  const dmy = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  const dmy = trimmed.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
   if (dmy) {
     const iso = `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
     if (isValidISODate(iso)) return iso;
@@ -50,16 +59,18 @@ export function validateAndParseImportJson(
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  const cleaned = rawJsonText.replace(/^\uFEFF/, '').trim();
   let parsed: unknown;
   try {
-    parsed = JSON.parse(rawJsonText);
+    parsed = JSON.parse(cleaned);
   } catch {
     return {
       valid: false,
+      sourceFormat: 'json',
       customers: [],
       totalValidEntries: 0,
       duplicateCount: 0,
-      errors: ['Invalid JSON syntax. Please upload a valid .json file.'],
+      errors: ['Invalid JSON syntax. Please provide valid JSON or CSV data.'],
       warnings: [],
     };
   }
@@ -204,9 +215,18 @@ export function validateAndParseImportJson(
         ? root.shop.trim()
         : undefined;
 
+  const rawUpi =
+    typeof root.upiId === 'string'
+      ? root.upiId.trim()
+      : typeof root.upi === 'string'
+        ? root.upi.trim()
+        : undefined;
+
   return {
     valid: errors.length === 0 && customers.length > 0,
+    sourceFormat: 'json',
     shopName: rawShop || undefined,
+    upiId: rawUpi || undefined,
     customers,
     totalValidEntries,
     duplicateCount,
@@ -252,10 +272,280 @@ function validateEntryItem(
   };
 }
 
+function splitCsvRows(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cell += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\r') {
+      if (text[i + 1] === '\n') i += 1;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else if (ch === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += ch;
+    }
+  }
+
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
+
+  return rows.filter((r) => r.some((c) => c.trim().length > 0));
+}
+
+function parseAmountCell(raw: string): number {
+  const cleaned = raw.replace(/[₹,\s]/g, '').replace(/^(rs\.?|inr)/i, '').trim();
+  if (!cleaned) return NaN;
+  return Number(cleaned);
+}
+
+function normalizeCsvEntryType(raw: string): 'credit' | 'payment' | 'placeholder' | 'summary' | null {
+  const lower = raw.trim().toLowerCase();
+  if (lower.includes('no entries') || lower === 'opening') return 'placeholder';
+  if (lower === 'outstanding summary' || lower === 'overdue summary') return 'summary';
+  if (
+    lower === 'credit' ||
+    lower === 'udhaar' ||
+    lower === 'udhar' ||
+    lower === 'given' ||
+    lower === 'debit' ||
+    lower === 'dr' ||
+    lower === 'gave'
+  ) {
+    return 'credit';
+  }
+  if (
+    lower === 'payment' ||
+    lower === 'paid' ||
+    lower === 'received' ||
+    lower === 'got' ||
+    lower === 'cr' ||
+    lower === 'jama' ||
+    lower === 'collection'
+  ) {
+    return 'payment';
+  }
+  return null;
+}
+
+export function parseShopCsv(
+  rawCsvText: string,
+  existingCustomers: Customer[]
+): ImportValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const cleaned = rawCsvText.replace(/^\uFEFF/, '').trim();
+  const rows = splitCsvRows(cleaned);
+
+  if (rows.length < 2) {
+    return {
+      valid: false,
+      sourceFormat: 'csv',
+      customers: [],
+      totalValidEntries: 0,
+      duplicateCount: 0,
+      errors: ['CSV must contain a header row and at least one customer or entry row.'],
+      warnings: [],
+    };
+  }
+
+  const headers = rows[0].map((h) => h.trim().toLowerCase().replace(/\s+/g, ' '));
+  const findCol = (aliases: string[]): number =>
+    headers.findIndex((h) => aliases.includes(h));
+
+  const nameIdx = findCol(['customer name', 'name', 'customer', 'party', 'party name']);
+  const phoneIdx = findCol(['phone number', 'phone', 'mobile', 'mobile number', 'contact']);
+  const typeIdx = findCol(['entry type', 'type', 'kind', 'txn type', 'transaction type']);
+  const amountIdx = findCol(['amount', 'amount (₹)', 'rupees', 'inr', 'rs', 'value']);
+  const dateIdx = findCol(['date', 'txn date', 'entry date']);
+  const noteIdx = findCol(['note', 'notes', 'items', 'description', 'particulars', 'remarks']);
+  const addressIdx = findCol(['address']);
+  const shopIdx = findCol(['shop', 'shop name', 'shopname']);
+
+  if (nameIdx === -1 || phoneIdx === -1) {
+    return {
+      valid: false,
+      sourceFormat: 'csv',
+      customers: [],
+      totalValidEntries: 0,
+      duplicateCount: 0,
+      errors: ['CSV header must include "Customer Name" (or "Name") and "Phone Number" (or "Phone").'],
+      warnings: [],
+    };
+  }
+
+  const existingByPhone = new Map<string, Customer>();
+  for (const c of existingCustomers) {
+    existingByPhone.set(c.phone, c);
+  }
+
+  const customers: ParsedImportCustomer[] = [];
+  const customerByPhone = new Map<string, ParsedImportCustomer>();
+  let detectedShopName: string | undefined;
+
+  for (let r = 1; r < rows.length; r += 1) {
+    const row = rows[r];
+    const rowLabel = `Row ${r + 1}`;
+    const name = (row[nameIdx] ?? '').trim();
+    const rawPhone = row[phoneIdx] ?? '';
+    const phone = normalizeIndianPhone(rawPhone);
+
+    if (!name) {
+      errors.push(`${rowLabel}: Missing customer name.`);
+      continue;
+    }
+    if (!isValidIndianPhone(phone)) {
+      errors.push(`${rowLabel} ("${name}"): Phone number "${rawPhone}" must be 10 digits.`);
+      continue;
+    }
+
+    if (!detectedShopName && shopIdx !== -1) {
+      const candidateShop = (row[shopIdx] ?? '').trim();
+      if (candidateShop) detectedShopName = candidateShop;
+    }
+
+    let targetCust = customerByPhone.get(phone);
+    if (!targetCust) {
+      const existing = existingByPhone.get(phone);
+      targetCust = {
+        sourceKey: phone,
+        name,
+        phone,
+        address: addressIdx !== -1 ? (row[addressIdx] ?? '').trim() || undefined : undefined,
+        entries: [],
+        isDuplicateInApp: Boolean(existing),
+        existingCustomerId: existing?.id,
+        existingCustomerName: existing?.name,
+      };
+      customerByPhone.set(phone, targetCust);
+      customers.push(targetCust);
+    }
+
+    const rawType = typeIdx !== -1 ? (row[typeIdx] ?? '').trim() : '';
+    const rawAmount = amountIdx !== -1 ? (row[amountIdx] ?? '').trim() : '';
+    const rawDate = dateIdx !== -1 ? (row[dateIdx] ?? '').trim() : '';
+    const rawNote = noteIdx !== -1 ? (row[noteIdx] ?? '').trim() : '';
+
+    // Allow customer-only CSV (no entry type / amount columns or empty entry fields)
+    if (!rawType && !rawAmount) {
+      if (rawNote && !targetCust.notes) targetCust.notes = rawNote;
+      continue;
+    }
+
+    const kind = normalizeCsvEntryType(rawType || 'credit');
+    if (!kind) {
+      errors.push(`${rowLabel}: Entry type "${rawType}" must be Credit or Payment.`);
+      continue;
+    }
+
+    const parsedAmount = parseAmountCell(rawAmount);
+    if (kind === 'placeholder') {
+      if (rawNote && !targetCust.notes) targetCust.notes = rawNote;
+      continue;
+    }
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      errors.push(`${rowLabel}: Amount "${rawAmount}" must be greater than 0.`);
+      continue;
+    }
+
+    const resolvedDate =
+      kind === 'summary' && (!rawDate || rawDate === '-' || /no payment/i.test(rawDate))
+        ? getTodayISO()
+        : rawDate
+          ? normalizeDateInput(rawDate)
+          : getTodayISO();
+
+    if (!resolvedDate) {
+      errors.push(`${rowLabel}: Invalid date "${rawDate}". Use DD-MM-YYYY or YYYY-MM-DD.`);
+      continue;
+    }
+
+    targetCust.entries.push({
+      type: kind === 'summary' ? 'credit' : kind,
+      amount: roundCurrency(parsedAmount),
+      date: resolvedDate,
+      note: rawNote || (kind === 'summary' ? 'Opening balance' : ''),
+    });
+  }
+
+  const totalValidEntries = customers.reduce((sum, c) => sum + c.entries.length, 0);
+  const duplicateCount = customers.filter((c) => c.isDuplicateInApp).length;
+
+  if (customers.length === 0 && errors.length === 0) {
+    errors.push('No valid customers found in CSV.');
+  }
+
+  return {
+    valid: errors.length === 0 && customers.length > 0,
+    sourceFormat: 'csv',
+    shopName: detectedShopName,
+    customers,
+    totalValidEntries,
+    duplicateCount,
+    errors,
+    warnings,
+  };
+}
+
+export function validateAndParseShopText(
+  rawText: string,
+  existingCustomers: Customer[]
+): ImportValidationResult {
+  const cleaned = rawText.replace(/^\uFEFF/, '').trim();
+  if (!cleaned) {
+    return {
+      valid: false,
+      customers: [],
+      totalValidEntries: 0,
+      duplicateCount: 0,
+      errors: ['Paste shop JSON or CSV text, or choose a file first.'],
+      warnings: [],
+    };
+  }
+
+  if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+    return validateAndParseImportJson(cleaned, existingCustomers);
+  }
+
+  return parseShopCsv(cleaned, existingCustomers);
+}
+
 export function buildExportBackupJson(
   customers: Customer[],
   entries: LedgerEntry[],
-  shopName: string
+  shopName: string,
+  upiId?: string
 ): string {
   const entriesByCustomer = new Map<string, LedgerEntry[]>();
   for (const e of entries) {
@@ -268,6 +558,7 @@ export function buildExportBackupJson(
     app: 'Hisaab',
     exportedAt: new Date().toISOString(),
     shopName,
+    ...(upiId ? { upiId } : {}),
     customers: customers.map((c) => ({
       id: c.id,
       name: c.name,

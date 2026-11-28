@@ -1,10 +1,12 @@
 import { ChevronRight, MessageCircle } from 'lucide-react';
-import type { CustomerSummary } from '../types';
+import type { CustomerSummary, LanguageCode } from '../types';
 import type { TranslationDict } from '../i18n/translations';
 import { formatIndianDate, formatINR } from '../utils/ledger';
+import { getLocalizedCustomerName } from '../utils/transliterate';
 
 interface CustomerCardProps {
   summary: CustomerSummary;
+  language: LanguageCode;
   t: TranslationDict;
   onSelect: (customerId: string) => void;
   onSendReminder: (summary: CustomerSummary) => void;
@@ -12,11 +14,13 @@ interface CustomerCardProps {
 
 export function CustomerCard({
   summary,
+  language,
   t,
   onSelect,
   onSendReminder,
 }: CustomerCardProps) {
   const { customer, balance, status, lastPaymentDate, daysSinceLastPayment } = summary;
+  const localizedName = getLocalizedCustomerName(customer.name, language);
 
   const statusMeta = {
     overdue: {
@@ -79,9 +83,19 @@ export function CustomerCard({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[15px] font-semibold text-stone-900 dark:text-stone-100 truncate">
-                {customer.name}
-              </span>
+              <div className="min-w-0 flex flex-wrap items-baseline gap-x-1.5">
+                <span className="text-[15px] font-semibold text-stone-900 dark:text-stone-100 truncate">
+                  {customer.name}
+                </span>
+                {localizedName && (
+                  <span
+                    dir={language === 'ur' ? 'rtl' : 'ltr'}
+                    className="text-xs font-medium text-emerald-700 dark:text-emerald-400 truncate"
+                  >
+                    ({localizedName})
+                  </span>
+                )}
+              </div>
               <span className={`text-base font-bold font-num shrink-0 ${statusMeta.amountColor}`}>
                 {formattedBalance}
               </span>

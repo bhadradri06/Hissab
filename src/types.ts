@@ -1,6 +1,37 @@
 export type EntryType = 'credit' | 'payment';
 
-export type LanguageCode = 'en' | 'hi' | 'te';
+export type LanguageCode =
+  | 'en'
+  | 'hi'
+  | 'te'
+  | 'bn'
+  | 'mr'
+  | 'ta'
+  | 'gu'
+  | 'kn'
+  | 'ml'
+  | 'pa'
+  | 'or'
+  | 'ur';
+
+export const LANGUAGE_CODES: readonly LanguageCode[] = [
+  'en',
+  'hi',
+  'te',
+  'bn',
+  'mr',
+  'ta',
+  'gu',
+  'kn',
+  'ml',
+  'pa',
+  'or',
+  'ur',
+] as const;
+
+export function isValidLanguageCode(value: unknown): value is LanguageCode {
+  return typeof value === 'string' && (LANGUAGE_CODES as readonly string[]).includes(value);
+}
 
 export interface Customer {
   id: string;

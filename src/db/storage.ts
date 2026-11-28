@@ -1,4 +1,4 @@
-import type { AppSettings, Customer, LedgerEntry } from '../types';
+import { isValidLanguageCode, type AppSettings, type Customer, type LedgerEntry } from '../types';
 
 const DB_NAME = 'hisaab_ledger_db';
 const DB_VERSION = 1;
@@ -99,7 +99,7 @@ function readSettingsFromLocalStorage(): AppSettings {
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     return {
-      language: parsed.language === 'hi' || parsed.language === 'te' ? parsed.language : 'en',
+      language: isValidLanguageCode(parsed.language) ? parsed.language : 'en',
       shopName: typeof parsed.shopName === 'string' ? parsed.shopName : DEFAULT_SETTINGS.shopName,
       upiId: typeof parsed.upiId === 'string' ? parsed.upiId : '',
       overdueThresholdDays:
@@ -191,8 +191,14 @@ class StorageService {
         STORE_SETTINGS
       );
       const storedSettings = settingsRows.find((r) => r.key === 'app_settings')?.value;
-      const mergedSettings = storedSettings
-        ? { ...DEFAULT_SETTINGS, ...storedSettings }
+      const mergedSettings: AppSettings = storedSettings
+        ? {
+            ...DEFAULT_SETTINGS,
+            ...storedSettings,
+            language: isValidLanguageCode(storedSettings.language)
+              ? storedSettings.language
+              : DEFAULT_SETTINGS.language,
+          }
         : settings;
 
       return {
